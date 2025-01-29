@@ -1,0 +1,30 @@
+{
+  "name": "proxydi",
+  "version": "0.0.1",
+  "description": "A typed DI container that resolves circular dependencies via Proxy",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/proxy-di/proxydi.git"
+  },
+  "keywords": [
+    "DI",
+    "DI-container",
+    "dependency-injection",
+    "dependency-injection-container",
+    "injector",
+    "ioc",
+    "inversion-of-control",
+    "proxy", 
+    "typescript"
+  ],
+  "author": "Yolziii",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/proxy-di/proxydi/issues"
+  },
+  "homepage": "https://github.com/proxy-di/proxydi#readme"
+}
