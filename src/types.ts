@@ -15,7 +15,6 @@ export type Inject = {
 export type ServiceClass<T> = new (...args: any[]) => T;
 
 export type ProxyDISettings = {
-    name?: string;
     parent?: ProxyDI;
 
     throwDuplicateException?: boolean;

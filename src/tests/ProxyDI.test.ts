@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { inject, ProxyDI, isProxy} from '../index';
+import { inject, ProxyDI } from '../index';
+import { isProxy } from '../ProxyFactory';
 
 class FirstService {
     name = "I'm first!";
@@ -12,6 +13,21 @@ class SecondService {
 }
 
 describe('ProxyDI', () => {
+    describe('id', () => {
+        it('has some numeric id', () => {
+            const container = new ProxyDI();
+            expect(container.id).is.not.NaN;
+        });
+
+        it('different containers has different id', () => {
+            const container1 = new ProxyDI();
+            const container2 = new ProxyDI();
+            const container3 = container1.createChildContainer();
+            expect(container1.id).is.not.equals(container2.id);
+            expect(container1.id).is.not.equals(container3.id);
+        });
+    });
+
     describe('isKnown()', () => {
         const serviceId = 'known';
         it('unknown service', () => {
@@ -77,7 +93,7 @@ describe('ProxyDI', () => {
     });
 
     describe('resolve() @inject', () => {
-        it('should resolve dependency', () => {
+        it('should resolve dependency after class registration', () => {
             const container = new ProxyDI();
 
             container.registerClass('first', FirstService);
@@ -86,12 +102,21 @@ describe('ProxyDI', () => {
             const service1 = container.resolve<FirstService>('first');
             const service2 = container.resolve<SecondService>('second');
 
-            expect(isProxy(service1.second)).is.true;
-            expect(service1.second).is.not.equals(service2);
             expect(service1.second.name).is.equals("I'm second!");
+            expect(service2.first.name).is.equals("I'm first!");
+        });
 
-            expect(isProxy(service2.first)).is.false;
-            expect(service2.first).is.equals(service1);
+        it('should resolve dependency after instance registration', () => {
+            const container = new ProxyDI();
+
+            container.registerClass('first', FirstService);
+
+            const service2 = new SecondService();
+            container.registerInstance('second', service2);
+
+            const service1 = container.resolve<FirstService>('first');
+
+            expect(service1.second.name).is.equals("I'm second!");
             expect(service2.first.name).is.equals("I'm first!");
         });
     });

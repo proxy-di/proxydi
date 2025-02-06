@@ -1,5 +1,7 @@
 import { Inject, ServiceId } from './types';
 
+export const INJECTS = Symbol('injects');
+
 export const inject = (serviceId?: ServiceId) => {
     return function (_value: unknown, context: ClassFieldDecoratorContext) {
         if (context?.kind === 'field') {
@@ -12,11 +14,11 @@ export const inject = (serviceId?: ServiceId) => {
             };
 
             context.addInitializer(function (this: any) {
-                if (!this.__ProxyDI_injects) {
-                    this.__ProxyDI_injects = [];
+                if (!this[INJECTS]) {
+                    this[INJECTS] = [];
                 }
 
-                this.__ProxyDI_injects.push(inject);
+                this[INJECTS].push(inject);
             });
         }
     };

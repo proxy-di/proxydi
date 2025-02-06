@@ -16,16 +16,11 @@ export class ProxyFactory {
                     if (target[prop]) {
                         return target[prop];
                     }
+
                     if (self.container.isKnown(serviceId)) {
                         const instance = self.container.resolve(
                             serviceId
                         ) as any;
-
-                        // console.log(
-                        //     `instance of ${serviceId} [ProxyDI]:`,
-                        //     instance,
-                        //     instance[IS_PROXY]
-                        // );
                         return Reflect.get(instance, prop, receiver);
                     } else {
                         throw new Error(
@@ -46,8 +41,16 @@ export class ProxyFactory {
                     }
                 },
                 has: function (target: any, prop: string) {
-                    const instance = self.container.resolve(serviceId) as any;
-                    return Reflect.has(instance, prop);
+                    if (self.container.isKnown(serviceId)) {
+                        const instance = self.container.resolve(
+                            serviceId
+                        ) as any;
+                        return Reflect.has(instance, prop);
+                    } else {
+                        throw new Error(
+                            `Unknown ProxyDI-service: ${serviceId}`
+                        );
+                    }
                 },
             }
         );

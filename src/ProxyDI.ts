@@ -1,3 +1,4 @@
+import { INJECTS } from './inject';
 import { ProxyFactory } from './ProxyFactory';
 import {
     Inject,
@@ -7,10 +8,14 @@ import {
     ServiceId,
 } from './types';
 
+export const PROXYDI = Symbol('ProxyDI');
+
 export class ProxyDI {
-    public readonly name: string;
+    private static idCounter = 0;
+    public readonly id: number;
+
     public readonly parent?: ProxyDI;
-    private children: Record<string, ProxyDI> = {};
+    private children: Record<number, ProxyDI> = {};
 
     private instances: { [id in ServiceId]: any } = {};
     private classes: { [id in ServiceId]: ServiceClass<any> } = {};
@@ -23,13 +28,7 @@ export class ProxyDI {
     constructor(settings?: ProxyDISettings) {
         this.proxyFactory = new ProxyFactory(this);
 
-        if (settings?.name) {
-            this.name = settings.name;
-        } else {
-            this.name = settings?.parent
-                ? `${settings.parent.name}-${settings.parent.newChildIndex()}`
-                : 'root';
-        }
+        this.id = ProxyDI.idCounter++;
 
         if (settings?.parent) {
             this.parent = settings.parent;
@@ -45,12 +44,18 @@ export class ProxyDI {
         serviceId: ServiceId,
         instance: T extends { new (...args: any[]): any } ? never : T
     ) {
+        if (this.instances[serviceId]) {
+            if (this.throwDuplicateException) {
+                throw new Error(
+                    `ProxyDI already has registered instance for ${serviceId}`
+                );
+            }
+        }
         this.injectDependencies(instance);
         this.instances[serviceId] = instance;
     }
 
-    registerClass<T>(serviceId
-        : ServiceId, serviceClass: ServiceClass<T>) {
+    registerClass<T>(serviceId: ServiceId, serviceClass: ServiceClass<T>) {
         if (this.classes[serviceId]) {
             if (this.throwDuplicateException) {
                 throw new Error(
@@ -108,7 +113,7 @@ export class ProxyDI {
     }
 
     private injectDependencies(instance: any) {
-        const serviceInjects: Inject[] = instance.__ProxyDI_injects || [];
+        const serviceInjects: Inject[] = instance[INJECTS] || [];
         serviceInjects.forEach((inject: Inject) => {
             let value = this.findInstance(inject.serviceId);
             if (!value) {
@@ -119,7 +124,7 @@ export class ProxyDI {
         });
 
         if (typeof instance === 'object') {
-            instance.__ProxyDI = this;
+            instance[PROXYDI] = this;
         }
     }
 
@@ -152,24 +157,24 @@ export class ProxyDI {
         this.proxies = {};
 
         if (this.parent) {
-            this.parent.removeChild(this.name, false);
+            this.parent.removeChild(this.id, false);
         }
     }
 
     addChild(child: ProxyDI) {
-        if (this.children[child.name]) {
+        if (this.children[child.id]) {
             throw new Error(`"ProxyDI already has child with name ${name}"`);
         }
 
-        this.children[child.name] = child;
+        this.children[child.id] = child;
     }
 
     newChildIndex() {
         return Object.keys(this.children).length;
     }
 
-    removeChild(name: string, destroy = true) {
-        const child = this.children[name];
+    removeChild(id: number, destroy = true) {
+        const child = this.children[id];
         if (!child) {
             return;
         }
@@ -178,6 +183,6 @@ export class ProxyDI {
             child.destroy();
         }
 
-        delete this.children[name];
+        delete this.children[id];
     }
 }
