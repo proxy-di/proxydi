@@ -1,55 +1,57 @@
 {
-  "name": "proxydi",
-  "version": "0.0.1",
-  "description": "A typed DI container that resolves circular dependencies via Proxy",
-  "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+    "name": "proxydi",
+    "version": "0.0.2",
+    "description": "A typed DI container that resolves circular dependencies via Proxy",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "scripts": {
+        "build": "rollup -c",
+        "dev": "rollup -c -w",
+        "test": "vitest",
+        "lint": "eslint src --ext .ts",
+        "format": "prettier --write \"src/**/*.ts\"",
+        "prepare": "npm run build",
+        "coverage": "vitest run --coverage"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/proxy-di/proxydi.git"
+    },
+    "keywords": [
+        "DI",
+        "DI-container",
+        "dependency-injection",
+        "dependency-injection-container",
+        "injector",
+        "ioc",
+        "inversion-of-control",
+        "proxy",
+        "typescript"
+    ],
+    "author": "Yolziii",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/proxy-di/proxydi/issues"
+    },
+    "homepage": "https://github.com/proxy-di/proxydi#readme",
+    "devDependencies": {
+        "@rollup/plugin-typescript": "^12.1.2",
+        "@typescript-eslint/eslint-plugin": "^8.22.0",
+        "@typescript-eslint/parser": "^8.22.0",
+        "@vitest/coverage-v8": "^3.0.4",
+        "eslint": "^9.19.0",
+        "prettier": "^3.4.2",
+        "rollup": "^4.32.1",
+        "typescript": "^5.7.3",
+        "vitest": "^3.0.4"
     }
-  },
-  "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "test": "vitest",
-    "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\"",
-     "prepare": "npm run build"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/proxy-di/proxydi.git"
-  },
-  "keywords": [
-    "DI",
-    "DI-container",
-    "dependency-injection",
-    "dependency-injection-container",
-    "injector",
-    "ioc",
-    "inversion-of-control",
-    "proxy",
-    "typescript"
-  ],
-  "author": "Yolziii",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/proxy-di/proxydi/issues"
-  },
-  "homepage": "https://github.com/proxy-di/proxydi#readme",
-  "devDependencies": {
-    "@rollup/plugin-typescript": "^12.1.2",
-    "@typescript-eslint/eslint-plugin": "^8.22.0",
-    "@typescript-eslint/parser": "^8.22.0",
-    "eslint": "^9.19.0",
-    "prettier": "^3.4.2",
-    "rollup": "^4.32.1",
-    "typescript": "^5.7.3",
-    "vitest": "^3.0.4"
-  }
 }
