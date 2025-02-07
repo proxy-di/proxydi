@@ -116,7 +116,7 @@ export class ProxyDI {
         return definer;
     }
 
-    private injectDependencies(instance: any) {
+    injectDependencies(instance: any) {
         const serviceInjects: Inject[] = instance[INJECTS] || [];
         serviceInjects.forEach((inject: Inject) => {
             let value = this.findInstance(inject.serviceId);

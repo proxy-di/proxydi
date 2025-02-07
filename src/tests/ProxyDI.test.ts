@@ -119,5 +119,19 @@ describe('ProxyDI', () => {
             expect(service1.second.name).is.equals("I'm second!");
             expect(service2.first.name).is.equals("I'm first!");
         });
+
+        it('external call of injectDependencies()', () => {
+            const container = new ProxyDI();
+
+            container.registerClass('first', FirstService);
+
+            const second = new SecondService();
+            expect(second.first).is.undefined;
+
+            container.injectDependencies(second);
+            expect(second.first.name).is.equals("I'm first!");
+
+            expect(container.isKnown('second')).is.false;
+        });
     });
 });
