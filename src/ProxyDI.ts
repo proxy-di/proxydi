@@ -1,4 +1,5 @@
 import { INJECTS } from './inject';
+import { injectableClasses } from './injectable';
 import { ProxyFactory } from './ProxyFactory';
 import {
     Inject,
@@ -17,9 +18,9 @@ export class ProxyDI {
     public readonly parent?: ProxyDI;
     private children: Record<number, ProxyDI> = {};
 
-    private instances: { [id in ServiceId]: any } = {};
-    private classes: { [id in ServiceId]: ServiceClass<any> } = {};
-    private proxies: { [id in ServiceId]: any } = {};
+    private instances: Record<ServiceId, any> = {};
+    private classes: Record<ServiceId, ServiceClass<any>> = {};
+    private proxies: Record<ServiceId, any> = {};
 
     private proxyFactory: ProxyFactory;
 
@@ -108,6 +109,9 @@ export class ProxyDI {
         let definer = this.classes[serviceId];
         if (!definer && this.parent) {
             return this.parent.findDefiner(serviceId);
+        }
+        if (!definer) {
+            return injectableClasses[serviceId];
         }
         return definer;
     }

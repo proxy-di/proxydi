@@ -6,7 +6,7 @@ Core notes:
 
 - Uses Stage 3 decorators (supported in TypeScript 5.x and babel-plugin-proposal-decorators)
 - Automatically resolves circular dependencies
-- Matches services by unique identifiers or property names
+- Matches services by unique identifiers, class or property names
 - Currently in active development
 
 # Quick start

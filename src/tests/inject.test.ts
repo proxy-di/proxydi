@@ -11,7 +11,7 @@ class DependentService {
 }
 
 describe('inject', () => {
-    it('should add __ProxyDI_injects', () => {
+    it('should add INJECTS', () => {
         const service = new DependentService() as any;
         expect(service[INJECTS]).is.not.undefined;
         expect(service[INJECTS].length).equal(2);
