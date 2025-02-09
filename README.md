@@ -1,5 +1,7 @@
 # ProxyDI
 
+[![Coverage Status](https://coveralls.io/repos/github/proxy-di/proxydi/badge.svg?branch=main)](https://coveralls.io/github/proxy-di/proxydi?branch=main)
+
 A typed DI container that resolves circular dependencies via Proxy.
 
 Core notes:
