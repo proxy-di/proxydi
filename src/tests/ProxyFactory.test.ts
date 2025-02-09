@@ -1,12 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ProxyDI } from '../index';
-import { isProxy, ProxyFactory } from '../ProxyFactory';
-
-class TestableProxDI extends ProxyDI {
-    getProxyFactory(): ProxyFactory {
-        return (this as any).proxyFactory;
-    }
-}
+import { isProxy } from '../ProxyFactory';
+import { TestableProxyDI } from './TestableProxyDI.mock';
 
 class SomeClass {
     someValue = 1;
@@ -17,7 +11,7 @@ describe('ProxyFactory', () => {
         const serviceId = 'someClass';
 
         it('isProxy()', () => {
-            const container = new TestableProxDI();
+            const container = new TestableProxyDI();
             container.registerClass(serviceId, SomeClass);
             const factory = container.getProxyFactory();
             const proxy = factory.makeProxy<SomeClass>(serviceId);
@@ -26,7 +20,7 @@ describe('ProxyFactory', () => {
         });
 
         it('get', () => {
-            const container = new TestableProxDI();
+            const container = new TestableProxyDI();
             container.registerClass(serviceId, SomeClass);
             const factory = container.getProxyFactory();
             const proxy = factory.makeProxy<SomeClass>(serviceId);
@@ -35,7 +29,7 @@ describe('ProxyFactory', () => {
         });
 
         it('get, unknown service', () => {
-            const container = new TestableProxDI();
+            const container = new TestableProxyDI();
             const factory = container.getProxyFactory();
             const proxy = factory.makeProxy<SomeClass>(serviceId);
 
@@ -45,7 +39,7 @@ describe('ProxyFactory', () => {
         });
 
         it('set', () => {
-            const container = new TestableProxDI();
+            const container = new TestableProxyDI();
             container.registerClass(serviceId, SomeClass);
             const factory = container.getProxyFactory();
             const proxy = factory.makeProxy<SomeClass>(serviceId);
@@ -55,7 +49,7 @@ describe('ProxyFactory', () => {
         });
 
         it('set, unknown service', () => {
-            const container = new TestableProxDI();
+            const container = new TestableProxyDI();
             const factory = container.getProxyFactory();
             const proxy = factory.makeProxy<SomeClass>(serviceId);
 
@@ -65,7 +59,7 @@ describe('ProxyFactory', () => {
         });
 
         it('has, property for known service', () => {
-            const container = new TestableProxDI();
+            const container = new TestableProxyDI();
             container.registerClass(serviceId, SomeClass);
             const factory = container.getProxyFactory();
             const proxy = factory.makeProxy<SomeClass>(serviceId);
@@ -75,7 +69,7 @@ describe('ProxyFactory', () => {
         });
 
         it('has, unknown service should throw error', () => {
-            const container = new TestableProxDI();
+            const container = new TestableProxyDI();
             const factory = container.getProxyFactory();
             const proxy = factory.makeProxy<SomeClass>(serviceId);
 

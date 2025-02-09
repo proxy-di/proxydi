@@ -17,10 +17,6 @@ export type ServiceClass<T> = new (...args: any[]) => T;
 export type ProxyDISettings = {
     parent?: ProxyDI;
 
-    throwDuplicateException?: boolean;
-    createProxyDIProperty?: boolean;
-
-    autoResolveCUnknownlasses?: boolean;
-    propertyNamesAsDependencyIds?: boolean;
-    classAsDependencies?: boolean;
+    allowRewriteClasses?: boolean;
+    allowRewriteInstances?: boolean;
 };

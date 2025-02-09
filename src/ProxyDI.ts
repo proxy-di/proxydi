@@ -10,6 +10,7 @@ import {
 } from './types';
 
 export const PROXYDI = Symbol('ProxyDI');
+export const PROXYDI_ID = Symbol('ProxyDI_ID');
 
 export class ProxyDI {
     private static idCounter = 0;
@@ -24,7 +25,8 @@ export class ProxyDI {
 
     private proxyFactory: ProxyFactory;
 
-    protected throwDuplicateException = true;
+    protected allowRewriteClasses = false;
+    protected allowRewriteInstances = false;
 
     constructor(settings?: ProxyDISettings) {
         this.proxyFactory = new ProxyFactory(this);
@@ -36,8 +38,11 @@ export class ProxyDI {
             this.parent.addChild(this);
         }
 
-        if (settings?.throwDuplicateException !== undefined) {
-            this.throwDuplicateException = settings.throwDuplicateException;
+        if (settings?.allowRewriteClasses !== undefined) {
+            this.allowRewriteClasses = settings.allowRewriteClasses;
+        }
+        if (settings?.allowRewriteInstances !== undefined) {
+            this.allowRewriteInstances = settings.allowRewriteInstances;
         }
     }
 
@@ -46,19 +51,24 @@ export class ProxyDI {
         instance: T extends { new (...args: any[]): any } ? never : T
     ) {
         if (this.instances[serviceId]) {
-            if (this.throwDuplicateException) {
+            if (!this.allowRewriteInstances) {
                 throw new Error(
                     `ProxyDI already has registered instance for ${serviceId}`
                 );
             }
         }
         this.injectDependencies(instance);
+
+        if (typeof instance === 'object') {
+            (instance as any)[PROXYDI_ID] = serviceId;
+        }
+
         this.instances[serviceId] = instance;
     }
 
     registerClass<T>(serviceId: ServiceId, serviceClass: ServiceClass<T>) {
         if (this.classes[serviceId]) {
-            if (this.throwDuplicateException) {
+            if (!this.allowRewriteClasses) {
                 throw new Error(
                     `ProxyDI already has registered class for ${serviceId}`
                 );
@@ -97,6 +107,7 @@ export class ProxyDI {
             let instance = new definer();
             this.injectDependencies(instance);
 
+            instance[PROXYDI_ID] = serviceId;
             this.instances[serviceId] = instance;
 
             return instance as T;
@@ -148,8 +159,20 @@ export class ProxyDI {
     }
 
     removeInstance(serviceId: ServiceId) {
-        delete this.instances[serviceId];
-        delete this.proxies[serviceId];
+        const id = (serviceId as any)[PROXYDI_ID]
+            ? (serviceId as any)[PROXYDI_ID]
+            : serviceId;
+        const instance = this.instances[id];
+        if (instance) {
+            const serviceInjects: Inject[] = instance[INJECTS] || [];
+            serviceInjects.forEach((inject: Inject) => {
+                inject.set(instance, undefined);
+            });
+            delete instance[PROXYDI];
+            delete instance[PROXYDI_ID];
+
+            delete this.instances[serviceId];
+        }
     }
 
     removeClass(serviceId: ServiceId) {
@@ -157,36 +180,42 @@ export class ProxyDI {
     }
 
     destroy() {
+        const allServices = Object.keys(this.instances);
+        for (const serviceId of allServices) {
+            const instance = this.instances[serviceId];
+            this.removeInstance(instance);
+        }
+
         this.instances = {};
         this.proxies = {};
+        this.classes = {};
+
+        for (const id of Object.keys(this.children)) {
+            const child = this.children[+id];
+            child.destroy();
+        }
+        this.children = {};
+
+        this.proxyFactory = undefined as any;
 
         if (this.parent) {
-            this.parent.removeChild(this.id, false);
+            this.parent.removeChild(this.id);
+            (this as any).parent = undefined;
         }
     }
 
     addChild(child: ProxyDI) {
         if (this.children[child.id]) {
-            throw new Error(`"ProxyDI already has child with name ${name}"`);
+            throw new Error(`ProxyDI already has child with id ${child.id}`);
         }
 
         this.children[child.id] = child;
     }
 
-    newChildIndex() {
-        return Object.keys(this.children).length;
-    }
-
-    removeChild(id: number, destroy = true) {
+    private removeChild(id: number) {
         const child = this.children[id];
-        if (!child) {
-            return;
+        if (child) {
+            delete this.children[id];
         }
-
-        if (destroy) {
-            child.destroy();
-        }
-
-        delete this.children[id];
     }
 }
