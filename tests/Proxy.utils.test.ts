@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isProxy } from '../src/ProxyFactory';
+import { isProxy } from '../src/Proxy.utils';
 import { TestableProxyDI } from './TestableProxyDI.mock';
 
 class SomeClass {

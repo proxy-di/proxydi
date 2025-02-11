@@ -11,6 +11,10 @@ export type Inject = {
 };
 
 export type ProxyDI = {
+    isKnown: (serviceId: ServiceId) => boolean;
+
+    injectDependencies: (instance: any) => void;
+
     registerInstance: <T>(
         serviceId: ServiceId,
         instance: T extends { new (...args: any[]): any } ? never : T
@@ -21,15 +25,11 @@ export type ProxyDI = {
         serviceClass: ServiceClass<T>
     ) => void;
 
-    isKnown: (serviceId: ServiceId) => boolean;
-
     resolve: <T>(serviceId: ServiceId) => T;
-
-    injectDependencies: (instance: any) => void;
 
     createChildContainer: () => ProxyDI;
 
-    removeInstance: (serviceId: ServiceId) => void;
+    removeInstance: (serviceId: ServiceId | ProxydiedInstance) => void;
     removeClass: (serviceId: ServiceId) => void;
     destroy: () => void;
 };
@@ -42,8 +42,11 @@ export type ReadyForProxidyInstance = {
     [INJECTS]: Inject[];
 };
 
-export type ProxydiedInstance = ReadyForProxidyInstance & {
+export type InjectedInstance = ReadyForProxidyInstance & {
     [PROXYDI]: ProxyDI;
+};
+
+export type ProxydiedInstance = InjectedInstance & {
     [SERVICE_ID]: ServiceId;
 };
 

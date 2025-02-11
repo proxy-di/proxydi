@@ -1,8 +1,14 @@
-import { INJECTS, PROXYDI, SERVICE_ID, ProxyDI as IProxyDI } from './types';
+import {
+    INJECTS,
+    PROXYDI,
+    SERVICE_ID,
+    ProxyDI as IProxyDI,
+    ProxydiedInstance,
+} from './types';
 import { injectableClasses } from './injectable';
-import { ProxyFactory } from './ProxyFactory';
 import { Inject, ProxyDISettings, ServiceClass, ServiceId } from './types';
 import { DEFAULT_SETTINGS } from './presets';
+import { makeProxy } from './Proxy.utils';
 
 export class ProxyDI implements IProxyDI {
     private static idCounter = 0;
@@ -11,17 +17,12 @@ export class ProxyDI implements IProxyDI {
     public readonly parent?: ProxyDI;
     private children: Record<number, IProxyDI> = {};
 
-    private instances: Record<ServiceId, any> = {};
-    private classes: Record<ServiceId, ServiceClass<any>> = {};
-    private proxies: Record<ServiceId, any> = {};
-
-    private proxyFactory: ProxyFactory;
+    private serviceInstances: Record<ServiceId, any> = {};
+    private serviceClasses: Record<ServiceId, ServiceClass<any>> = {};
 
     private settings: Required<ProxyDISettings>;
 
     constructor(settings?: ProxyDISettings, parent?: ProxyDI) {
-        this.proxyFactory = new ProxyFactory(this);
-
         this.id = ProxyDI.idCounter++;
 
         if (parent) {
@@ -36,7 +37,7 @@ export class ProxyDI implements IProxyDI {
         serviceId: ServiceId,
         instance: T extends { new (...args: any[]): any } ? never : T
     ) {
-        if (this.instances[serviceId]) {
+        if (this.serviceInstances[serviceId]) {
             if (!this.settings.allowRewriteInstances) {
                 throw new Error(
                     `ProxyDI already has registered instance for ${serviceId}`
@@ -57,35 +58,24 @@ export class ProxyDI implements IProxyDI {
             (instance as any)[SERVICE_ID] = serviceId;
         }
 
-        this.instances[serviceId] = instance;
+        this.serviceInstances[serviceId] = instance;
     }
 
     registerClass<T>(serviceId: ServiceId, serviceClass: ServiceClass<T>) {
-        if (this.classes[serviceId]) {
+        if (this.serviceClasses[serviceId]) {
             if (!this.settings.allowRewriteClasses) {
                 throw new Error(
                     `ProxyDI already has registered class for ${serviceId}`
                 );
             }
         }
-        this.classes[serviceId] = serviceClass;
-    }
-
-    private findInstance<T>(serviceId: ServiceId): T | undefined {
-        const instance = this.instances[serviceId];
-        if (!instance && this.parent) {
-            const parentInstance = this.parent.findInstance<T>(serviceId);
-            // TODO: Make copy, inject container dependencies?
-            return parentInstance;
-        }
-
-        return instance;
+        this.serviceClasses[serviceId] = serviceClass;
     }
 
     isKnown(serviceId: ServiceId) {
         return !!(
             this.findInstance(serviceId) ||
-            this.findDefiner(serviceId) ||
+            this.findServiceClass(serviceId) ||
             injectableClasses[serviceId]
         );
     }
@@ -100,39 +90,25 @@ export class ProxyDI implements IProxyDI {
         const instance = this.findInstance<T>(serviceId);
         if (instance) {
             return instance;
-        }
-
-        const definer = this.findDefiner(serviceId);
-        if (definer) {
-            let instance = new definer();
-            this.injectDependencies(instance);
-
-            instance[SERVICE_ID] = serviceId;
-            this.instances[serviceId] = instance;
-
-            return instance as T;
         } else {
-            return this.getProxy<T>(serviceId);
-        }
-    }
+            const ServiceClass = this.findServiceClass(serviceId)!;
 
-    private findDefiner(serviceId: ServiceId): ServiceClass<any> | undefined {
-        let definer = this.classes[serviceId];
-        if (!definer && this.parent) {
-            return this.parent.findDefiner(serviceId);
+            const newInstance = new ServiceClass();
+            this.registerInstance(serviceId, newInstance);
+
+            return newInstance as T;
         }
-        if (!definer) {
-            return injectableClasses[serviceId];
-        }
-        return definer;
     }
 
     injectDependencies(instance: any) {
         const serviceInjects: Inject[] = instance[INJECTS] || [];
         serviceInjects.forEach((inject: Inject) => {
+            // TODO: Return only proxies
+            //const value = makeProxy(inject.serviceId, instance);
+
             let value = this.findInstance(inject.serviceId);
             if (!value) {
-                value = this.getProxy(inject.serviceId);
+                value = makeProxy(inject.serviceId, instance);
             }
 
             inject.set(instance, value);
@@ -143,25 +119,13 @@ export class ProxyDI implements IProxyDI {
         }
     }
 
-    private getProxy<T>(serviceId: ServiceId): T {
-        let proxy = this.proxies[serviceId];
-        if (!proxy) {
-            proxy = this.proxyFactory.makeProxy(serviceId);
-            this.proxies[serviceId] = proxy;
-        }
-
-        return proxy as T;
-    }
-
     createChildContainer(): ProxyDI {
         return new ProxyDI(this.settings, this);
     }
 
-    removeInstance(serviceId: ServiceId) {
-        const id = (serviceId as any)[SERVICE_ID]
-            ? (serviceId as any)[SERVICE_ID]
-            : serviceId;
-        const instance = this.instances[id];
+    removeInstance(serviceId: ServiceId | ProxydiedInstance) {
+        const id = isInstance(serviceId) ? serviceId[SERVICE_ID] : serviceId;
+        const instance = this.serviceInstances[id];
         if (instance) {
             const serviceInjects: Inject[] = instance[INJECTS] || [];
             serviceInjects.forEach((inject: Inject) => {
@@ -170,24 +134,23 @@ export class ProxyDI implements IProxyDI {
             delete instance[PROXYDI];
             delete instance[SERVICE_ID];
 
-            delete this.instances[serviceId];
+            delete this.serviceInstances[id];
         }
     }
 
     removeClass(serviceId: ServiceId) {
-        delete this.classes[serviceId];
+        delete this.serviceClasses[serviceId];
     }
 
     destroy() {
-        const allServices = Object.keys(this.instances);
+        const allServices = Object.keys(this.serviceInstances);
         for (const serviceId of allServices) {
-            const instance = this.instances[serviceId];
+            const instance = this.serviceInstances[serviceId];
             this.removeInstance(instance);
         }
 
-        this.instances = {};
-        this.proxies = {};
-        this.classes = {};
+        this.serviceInstances = {};
+        this.serviceClasses = {};
 
         for (const id of Object.keys(this.children)) {
             const child = this.children[+id];
@@ -195,12 +158,34 @@ export class ProxyDI implements IProxyDI {
         }
         this.children = {};
 
-        this.proxyFactory = undefined as any;
-
         if (this.parent) {
             this.parent.removeChild(this.id);
             (this as any).parent = undefined;
         }
+    }
+
+    private findInstance<T>(serviceId: ServiceId): T | undefined {
+        const instance = this.serviceInstances[serviceId];
+        if (!instance && this.parent) {
+            const parentInstance = this.parent.findInstance<T>(serviceId);
+            // TODO: Make copy, inject container dependencies?
+            return parentInstance;
+        }
+
+        return instance;
+    }
+
+    private findServiceClass(
+        serviceId: ServiceId
+    ): ServiceClass<any> | undefined {
+        let ServiceClass = this.serviceClasses[serviceId];
+        if (!ServiceClass && !!this.parent) {
+            return this.parent.findServiceClass(serviceId);
+        }
+        if (!ServiceClass) {
+            return injectableClasses[serviceId];
+        }
+        return ServiceClass;
     }
 
     private addChild(child: ProxyDI) {
@@ -217,4 +202,13 @@ export class ProxyDI implements IProxyDI {
             delete this.children[id];
         }
     }
+}
+
+function isInstance(
+    service: ServiceId | ProxydiedInstance
+): service is ProxydiedInstance {
+    return (
+        typeof service === 'object' &&
+        !!(service as ProxydiedInstance)[SERVICE_ID]
+    );
 }

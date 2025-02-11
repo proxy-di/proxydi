@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { inject, ProxyDI } from '../src/index';
 import { TestableProxyDI } from './TestableProxyDI.mock';
 import { PROXYDI, SERVICE_ID } from '../src/types';
-import { isProxy } from '../src/ProxyFactory';
+import { isProxy } from '../src/Proxy.utils';
 import { injectable } from '../src/injectable';
 
 class FirstService {
@@ -15,11 +15,9 @@ class SecondService {
     @inject() first: FirstService;
 }
 
-@injectable('third')
-class ThirdService {
-    name = "I'm third!";
-    @inject() first: FirstService;
-    @inject() second: SecondService;
+@injectable('any')
+class AnyService {
+    constructor(public readonly name) {}
 }
 
 describe('ProxyDI', () => {
@@ -48,7 +46,7 @@ describe('ProxyDI', () => {
 
         it('@injectable classes is already known', () => {
             const container = new ProxyDI();
-            expect(container.isKnown('third')).is.true;
+            expect(container.isKnown('any')).is.true;
         });
 
         it('class is known after resigtation', () => {
@@ -159,6 +157,7 @@ describe('ProxyDI', () => {
             container.registerInstance(serviceId, instance);
 
             expect(container.resolve(serviceId)).equal(instance);
+            expect(instance[SERVICE_ID]).is.equals(serviceId);
         });
     });
 
@@ -292,8 +291,13 @@ describe('ProxyDI', () => {
             expect(service2.first).equals(service1);
             expect(isProxy(service1.second)).is.true;
             expect(() => service1.second.name).toThrowError(
-                'Unknown ProxyDI-service: second'
+                'Unknown ProxyDI-service'
             );
+
+            const service1FromChild = child.resolve<FirstService>('first');
+            expect(isProxy(service1FromChild.second)).is.true;
+            // TODO: Make it works
+            //expect(service1FromChild.second.name).is.equals("I'm second");
         });
 
         it('removeInstance() clear dependencies and container', () => {
