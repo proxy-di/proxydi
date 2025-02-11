@@ -1,6 +1,4 @@
-import { Inject, ServiceId } from './types';
-
-export const INJECTS = Symbol('injects');
+import { Inject, INJECTS, ServiceId } from './types';
 
 export const inject = (serviceId?: ServiceId) => {
     return function (_value: unknown, context: ClassFieldDecoratorContext) {

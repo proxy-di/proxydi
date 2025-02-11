@@ -1,7 +1,5 @@
 import { ProxyDI } from './ProxyDI';
-import { ServiceId } from './types';
-
-const IS_PROXY = Symbol('isProxy');
+import { IS_PROXY, ServiceId } from './types';
 
 export class ProxyFactory {
     constructor(private container: ProxyDI) {}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { inject, ProxyDI } from '../src/index';
 import { TestableProxyDI } from './TestableProxyDI.mock';
-import { PROXYDI, PROXYDI_ID } from '../src/ProxyDI';
+import { PROXYDI, SERVICE_ID } from '../src/types';
 import { isProxy } from '../src/ProxyFactory';
 import { injectable } from '../src/injectable';
 
@@ -81,7 +81,6 @@ describe('ProxyDI', () => {
 
             expect(container.isKnown(serviceId)).is.false;
         });
-        
 
         it('instance is known after registration', () => {
             const container = new ProxyDI();
