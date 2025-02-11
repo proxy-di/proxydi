@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { inject, ProxyDI } from '../index';
+import { inject, ProxyDI } from '../src/index';
 import { TestableProxyDI } from './TestableProxyDI.mock';
-import { PROXYDI, PROXYDI_ID } from '../ProxyDI';
-import { isProxy } from '../ProxyFactory';
+import { PROXYDI, PROXYDI_ID } from '../src/ProxyDI';
+import { isProxy } from '../src/ProxyFactory';
+import { injectable } from '../src/injectable';
 
 class FirstService {
     name = "I'm first!";
@@ -12,6 +13,13 @@ class FirstService {
 class SecondService {
     name = "I'm second!";
     @inject() first: FirstService;
+}
+
+@injectable('third')
+class ThirdService {
+    name = "I'm third!";
+    @inject() first: FirstService;
+    @inject() second: SecondService;
 }
 
 describe('ProxyDI', () => {
@@ -32,12 +40,18 @@ describe('ProxyDI', () => {
 
     describe('isKnown()', () => {
         const serviceId = 'known';
-        it('unknown service', () => {
+
+        it('any service in uknown without registration', () => {
             const container = new ProxyDI();
             expect(container.isKnown(serviceId)).is.false;
         });
 
-        it('known class', () => {
+        it('@injectable classes is already known', () => {
+            const container = new ProxyDI();
+            expect(container.isKnown('third')).is.true;
+        });
+
+        it('class is known after resigtation', () => {
             const container = new ProxyDI();
             container.registerClass(serviceId, FirstService);
 
@@ -60,15 +74,16 @@ describe('ProxyDI', () => {
             expect(container.isKnown(serviceId)).is.true;
         });
 
-        it('unknown removed class', () => {
+        it('removed class is unknown', () => {
             const container = new ProxyDI();
             container.registerClass(serviceId, FirstService);
             container.removeClass(serviceId);
 
             expect(container.isKnown(serviceId)).is.false;
         });
+        
 
-        it('known instance', () => {
+        it('instance is known after registration', () => {
             const container = new ProxyDI();
             const instance = new FirstService();
             container.registerInstance(serviceId, instance);
@@ -95,7 +110,7 @@ describe('ProxyDI', () => {
             expect(container.isKnown(serviceId)).is.true;
         });
 
-        it('unknown remove instance', () => {
+        it('unknown removed instance', () => {
             const container = new ProxyDI();
             const instance = new FirstService();
             container.registerInstance(serviceId, instance);
@@ -104,9 +119,18 @@ describe('ProxyDI', () => {
             expect(container.isKnown(serviceId)).is.false;
         });
 
-        it('known any as instance', () => {
+        it('by default instance should be an object', () => {
             const container = new ProxyDI();
-            container.registerInstance(serviceId, 'some value');
+            expect(() =>
+                container.registerInstance(serviceId, 'any value')
+            ).toThrowError("Can't register as instance");
+        });
+
+        it('but any value could be registered as instance', () => {
+            const container = new ProxyDI({
+                allowRegisterAnythingAsInstance: true,
+            });
+            container.registerInstance(serviceId, 'any value');
 
             expect(container.isKnown(serviceId)).is.true;
         });
@@ -136,13 +160,6 @@ describe('ProxyDI', () => {
             container.registerInstance(serviceId, instance);
 
             expect(container.resolve(serviceId)).equal(instance);
-        });
-
-        it('resolve any as instance', () => {
-            const container = new ProxyDI();
-            container.registerInstance(serviceId, 'some value');
-
-            expect(container.resolve(serviceId)).equal('some value');
         });
     });
 

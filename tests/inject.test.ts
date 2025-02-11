@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { inject, Inject } from '../index';
-import { INJECTS } from '../inject';
+import { inject, Inject } from '../src/index';
+import { INJECTS } from '../src/inject';
 
 class FreeService {
     constructor(public readonly name = 'Free service') {}

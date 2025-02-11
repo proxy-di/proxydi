@@ -1,13 +1,7 @@
 import { INJECTS } from './inject';
 import { injectableClasses } from './injectable';
 import { ProxyFactory } from './ProxyFactory';
-import {
-    Inject,
-    ProxyDISettings,
-    ServiceClass,
-    ServiceConstructor,
-    ServiceId,
-} from './types';
+import { Inject, ProxyDISettings, ServiceClass, ServiceId } from './types';
 
 export const PROXYDI = Symbol('ProxyDI');
 export const PROXYDI_ID = Symbol('ProxyDI_ID');
@@ -25,8 +19,9 @@ export class ProxyDI {
 
     private proxyFactory: ProxyFactory;
 
-    protected allowRewriteClasses = false;
-    protected allowRewriteInstances = false;
+    private allowRewriteClasses = false;
+    private allowRewriteInstances = false;
+    private allowRegisterAnythingAsInstance = false;
 
     constructor(settings?: ProxyDISettings) {
         this.proxyFactory = new ProxyFactory(this);
@@ -44,6 +39,10 @@ export class ProxyDI {
         if (settings?.allowRewriteInstances !== undefined) {
             this.allowRewriteInstances = settings.allowRewriteInstances;
         }
+        if (settings?.allowRegisterAnythingAsInstance !== undefined) {
+            this.allowRegisterAnythingAsInstance =
+                settings.allowRegisterAnythingAsInstance;
+        }
     }
 
     registerInstance<T>(
@@ -57,9 +56,17 @@ export class ProxyDI {
                 );
             }
         }
+
+        const isObject = typeof instance === 'object';
+        if (!isObject && !this.allowRegisterAnythingAsInstance) {
+            throw new Error(
+                `Can't register as instance (allowRegisterAnythingAsInstance is off for this ProxyDI contatiner): ${instance}`
+            );
+        }
+
         this.injectDependencies(instance);
 
-        if (typeof instance === 'object') {
+        if (isObject) {
             (instance as any)[PROXYDI_ID] = serviceId;
         }
 
@@ -87,7 +94,11 @@ export class ProxyDI {
     }
 
     isKnown(serviceId: ServiceId) {
-        return !!(this.findInstance(serviceId) || this.findDefiner(serviceId));
+        return !!(
+            this.findInstance(serviceId) ||
+            this.findDefiner(serviceId) ||
+            injectableClasses[serviceId]
+        );
     }
 
     resolve<T>(serviceId: ServiceId): T {

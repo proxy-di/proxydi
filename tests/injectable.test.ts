@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { inject, Inject, ProxyDI } from '../index';
-import { INJECTS } from '../inject';
-import { injectable } from '../injectable';
+import { inject, Inject, ProxyDI } from '../src/index';
+import { injectable } from '../src/injectable';
 
 @injectable()
 class FirstService {

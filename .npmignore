@@ -1,11 +1,13 @@
 # Exclude version control directories
 .git/
 .gitignore
+.guthub/
 
 # Exclude Node modules
 node_modules/
 
 src/
+tests/
 *.code-workspace
 tsconfig.json
 *.tgz

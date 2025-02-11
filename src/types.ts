@@ -17,6 +17,8 @@ export type ServiceClass<T> = new (...args: any[]) => T;
 export type ProxyDISettings = {
     parent?: ProxyDI;
 
+    allowRegisterAnythingAsInstance?: boolean;
+
     allowRewriteClasses?: boolean;
     allowRewriteInstances?: boolean;
 };

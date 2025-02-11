@@ -1,5 +1,5 @@
-import { ProxyDI } from '../ProxyDI';
-import { ProxyFactory } from '../ProxyFactory';
+import { ProxyDI } from '../src/ProxyDI';
+import { ProxyFactory } from '../src/ProxyFactory';
 
 export class TestableProxyDI extends ProxyDI {
     getProxyFactory(): ProxyFactory {
