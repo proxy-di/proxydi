@@ -33,4 +33,15 @@ describe('injectable', () => {
             `ProxyDI injectable classes already has service ID: second`
         );
     });
+
+    it('should decorate class', () => {
+        expect(() => {
+            const anyInjectable = injectable as any;
+
+            class Test {
+                @anyInjectable()
+                field: true;
+            }
+        }).toThrowError('@injectable decorator should decorate classes');
+    });
 });

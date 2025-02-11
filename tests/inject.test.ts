@@ -54,4 +54,12 @@ describe('inject', () => {
         expect(service.anotherFreeService.name).equal('Another free service');
         expect(service.anotherFreeService instanceof FreeService).is.true;
     });
+
+    it('should decorate fields', () => {
+        expect(() => {
+            const anyInject = inject as any;
+            @anyInject()
+            class Test {}
+        }).toThrowError('@inject decorator should decorate fields');
+    });
 });

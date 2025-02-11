@@ -18,6 +18,8 @@ export const inject = (serviceId?: ServiceId) => {
 
                 this[INJECTS].push(inject);
             });
+        } else {
+            throw new Error('@inject decorator should decorate fields');
         }
     };
 };
