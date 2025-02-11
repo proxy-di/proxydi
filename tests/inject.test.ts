@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { inject, Inject } from '../index';
-import { INJECTS } from '../inject';
+import { inject, Inject } from '../src/index';
+import { INJECTS } from '../src/types';
 
 class FreeService {
     constructor(public readonly name = 'Free service') {}
@@ -53,5 +53,13 @@ describe('inject', () => {
         expect(service.anotherFreeService).is.not.undefined;
         expect(service.anotherFreeService.name).equal('Another free service');
         expect(service.anotherFreeService instanceof FreeService).is.true;
+    });
+
+    it('should decorate fields', () => {
+        expect(() => {
+            const anyInject = inject as any;
+            @anyInject()
+            class Test {}
+        }).toThrowError('@inject decorator should decorate fields');
     });
 });

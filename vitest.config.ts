@@ -5,14 +5,14 @@ export default defineConfig({
         globals: true,
         environment: 'node',
         coverage: {
-            reporter: ['text', 'json', 'html', 'lcov'],
+            reporter: ['text', 'lcov'],
             exclude: [
                 'node_modules/',
                 'dist/',
                 '**/*.test.ts',
                 'rollup.config.js',
                 'vitest.config.ts',
-                'src/tests',
+                'tests/',
                 'src/types.ts',
             ],
         },

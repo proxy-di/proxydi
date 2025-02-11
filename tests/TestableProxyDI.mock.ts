@@ -1,11 +1,6 @@
-import { ProxyDI } from '../ProxyDI';
-import { ProxyFactory } from '../ProxyFactory';
+import { ProxyDI } from '../src/ProxyDI';
 
 export class TestableProxyDI extends ProxyDI {
-    getProxyFactory(): ProxyFactory {
-        return (this as any).proxyFactory;
-    }
-
     getChildren() {
         return (this as any).children;
     }
