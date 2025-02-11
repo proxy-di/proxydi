@@ -1,81 +1,90 @@
 import { describe, it, expect } from 'vitest';
-import { isProxy } from '../src/Proxy.utils';
-import { TestableProxyDI } from './TestableProxyDI.mock';
+import { isProxy, makeProxy } from '../src/Proxy.utils';
+import { injectable, inject, ProxyDI } from '../src/index';
 
-class SomeClass {
+const someServiceId = 'someService';
+const otherServiceId = 'otherService';
+
+@injectable(someServiceId)
+class SomeService {
     someValue = 1;
+
+    @inject() unknown: any;
 }
 
-describe('ProxyFactory', () => {
-    describe('Proxy implementation', () => {
-        const serviceId = 'someClass';
+@injectable(otherServiceId)
+class OtherService {
+    @inject() someService: SomeService;
+}
 
-        it('isProxy()', () => {
-            const container = new TestableProxyDI();
-            container.registerClass(serviceId, SomeClass);
-            const factory = container.getProxyFactory();
-            const proxy = factory.makeProxy<SomeClass>(serviceId);
+describe('Proxy utils', () => {
+    it('isProxy()', () => {
+        const container = new ProxyDI();
+        const instance = container.resolve(someServiceId);
+        const proxy = makeProxy<SomeService>(someServiceId, instance);
 
-            expect(isProxy(proxy)).is.true;
-        });
+        expect(isProxy(proxy)).is.true;
+    });
 
+    describe('makeProxy()', () => {
         it('get', () => {
-            const container = new TestableProxyDI();
-            container.registerClass(serviceId, SomeClass);
-            const factory = container.getProxyFactory();
-            const proxy = factory.makeProxy<SomeClass>(serviceId);
+            const container = new ProxyDI();
+            container.registerClass(someServiceId, SomeService);
+            const instance = container.resolve(someServiceId);
+            const proxy = makeProxy<SomeService>(someServiceId, instance);
 
             expect(proxy.someValue).equals(1);
         });
 
         it('get, unknown service', () => {
-            const container = new TestableProxyDI();
-            const factory = container.getProxyFactory();
-            const proxy = factory.makeProxy<SomeClass>(serviceId);
+            const container = new ProxyDI();
+            const some = container.resolve(someServiceId);
 
-            expect(() => proxy.someValue).toThrowError(
-                `Unknown ProxyDI-service: ${serviceId}`
+            const proxy = makeProxy<any>('unknown', some);
+
+            expect(() => proxy.anyValue).toThrowError(
+                `Unknown ProxyDI-service`
             );
         });
 
         it('set', () => {
-            const container = new TestableProxyDI();
-            container.registerClass(serviceId, SomeClass);
-            const factory = container.getProxyFactory();
-            const proxy = factory.makeProxy<SomeClass>(serviceId);
+            const container = new ProxyDI();
+            const otherService = container.resolve(otherServiceId);
+
+            const proxy = makeProxy<SomeService>(someServiceId, otherService);
             proxy.someValue = 2;
 
             expect(proxy.someValue).equals(2);
         });
 
         it('set, unknown service', () => {
-            const container = new TestableProxyDI();
-            const factory = container.getProxyFactory();
-            const proxy = factory.makeProxy<SomeClass>(serviceId);
+            const container = new ProxyDI();
+            const someInstance = container.resolve(someServiceId);
 
-            expect(() => (proxy.someValue = 2)).toThrowError(
-                `Unknown ProxyDI-service: ${serviceId}`
+            const unknownService = makeProxy<any>('unknown', someInstance);
+
+            expect(() => (unknownService.someValue = 2)).toThrowError(
+                `Unknown ProxyDI-service`
             );
         });
 
         it('has, property for known service', () => {
-            const container = new TestableProxyDI();
-            container.registerClass(serviceId, SomeClass);
-            const factory = container.getProxyFactory();
-            const proxy = factory.makeProxy<SomeClass>(serviceId);
+            const container = new ProxyDI();
+            const otherService = container.resolve(otherServiceId);
+            const proxy = makeProxy<SomeService>(someServiceId, otherService);
 
             expect('someValue' in proxy).toBe(true);
             expect('nonExisting' in proxy).toBe(false);
         });
 
         it('has, unknown service should throw error', () => {
-            const container = new TestableProxyDI();
-            const factory = container.getProxyFactory();
-            const proxy = factory.makeProxy<SomeClass>(serviceId);
+            const container = new ProxyDI();
+            const someService = container.resolve(someServiceId);
+            const proxy = makeProxy<SomeService>('unknown', someService);
 
             expect(() => {
                 'someValue' in proxy;
-            }).toThrowError(`Unknown ProxyDI-service: ${serviceId}`);
+            }).toThrowError(`Unknown ProxyDI-service`);
         });
     });
 });
