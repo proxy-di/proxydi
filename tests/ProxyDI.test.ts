@@ -293,11 +293,16 @@ describe('ProxyDI', () => {
             expect(() => service1.second.name).toThrowError(
                 'Unknown ProxyDI-service'
             );
+        });
 
-            const service1FromChild = child.resolve<FirstService>('first');
-            expect(isProxy(service1FromChild.second)).is.true;
-            // TODO: Make it works
-            //expect(service1FromChild.second.name).is.equals("I'm second");
+        it('resolve dependency from parent via child', () => {
+            const parent = new ProxyDI();
+            parent.registerClass('first', FirstService);
+
+            const child = parent.createChildContainer();
+
+            const service1 = child.resolve<FirstService>('first');
+            expect(service1.name).is.equals("I'm first!");
         });
 
         it('removeInstance() clear dependencies and container', () => {
@@ -314,6 +319,22 @@ describe('ProxyDI', () => {
 
             expect(service2.first).is.undefined;
             expect(service2[PROXYDI]).is.undefined;
+        });
+
+        it('removeInstance() removes any value', () => {
+            const container = new ProxyDI({
+                allowRegisterAnythingAsInstance: true,
+            });
+            container.registerInstance('literal', 'any value');
+            expect(container.isKnown('literal')).is.true;
+
+            const anyValue = container.resolve('literal');
+
+            expect(anyValue).equals('any value');
+
+            container.removeInstance('literal');
+
+            expect(container.isKnown('literal')).is.false;
         });
     });
 });

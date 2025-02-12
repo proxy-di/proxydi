@@ -127,7 +127,9 @@ export class ProxyDI implements IProxyDI {
         const id = isInstance(serviceId) ? serviceId[SERVICE_ID] : serviceId;
         const instance = this.serviceInstances[id];
         if (instance) {
-            const serviceInjects: Inject[] = instance[INJECTS] || [];
+            const serviceInjects: Inject[] = instance[INJECTS]
+                ? instance[INJECTS]
+                : [];
             serviceInjects.forEach((inject: Inject) => {
                 inject.set(instance, undefined);
             });

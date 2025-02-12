@@ -1,7 +1,7 @@
 # Exclude version control directories
 .git/
 .gitignore
-.guthub/
+.github/
 
 # Exclude Node modules
 node_modules/
