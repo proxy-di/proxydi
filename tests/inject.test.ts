@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { inject, Inject } from '../src/index';
-import { INJECTS } from '../src/types';
+import { inject } from '../src/index';
+import { Injection, INJECTIONS } from '../src/types';
 
 class FreeService {
     constructor(public readonly name = 'Free service') {}
@@ -13,8 +13,8 @@ class DependentService {
 describe('inject', () => {
     it('should add INJECTS', () => {
         const service = new DependentService() as any;
-        expect(service[INJECTS]).is.not.undefined;
-        expect(service[INJECTS].length).equal(2);
+        expect(service[INJECTIONS]).is.not.undefined;
+        expect(service[INJECTIONS].length).equal(2);
     });
 
     it("@inject itself doesn't inject anything", () => {
@@ -26,7 +26,7 @@ describe('inject', () => {
     it('Service ID could be taken from property name', () => {
         const service = new DependentService() as any;
 
-        const inject = service[INJECTS][0] as Inject;
+        const inject = service[INJECTIONS][0] as Injection;
         expect(inject.property).equal('freeService');
         expect(inject.serviceId).equal('freeService');
     });
@@ -34,7 +34,7 @@ describe('inject', () => {
     it('Service ID could be set directly', () => {
         const service = new DependentService() as any;
 
-        const inject2 = service[INJECTS][1] as Inject;
+        const inject2 = service[INJECTIONS][1] as Injection;
         expect(inject2.property).equal('anotherFreeService');
         expect(inject2.serviceId).equal('freeService');
     });
@@ -42,13 +42,13 @@ describe('inject', () => {
     it('Injected data should allow set value', () => {
         const service = new DependentService() as any;
 
-        const inject = service[INJECTS][0] as Inject;
+        const inject = service[INJECTIONS][0] as Injection;
         inject.set(service, new FreeService());
         expect(service.freeService).is.not.undefined;
         expect(service.freeService.name).equal('Free service');
         expect(service.freeService instanceof FreeService).is.true;
 
-        const inject2 = service[INJECTS][1] as Inject;
+        const inject2 = service[INJECTIONS][1] as Injection;
         inject2.set(service, new FreeService('Another free service'));
         expect(service.anotherFreeService).is.not.undefined;
         expect(service.anotherFreeService.name).equal('Another free service');

@@ -1,67 +1,79 @@
-export type ServiceId = any;
+import { ProxyDiContainer } from './ProxyDI';
 
-export type ServiceConstructor<T extends unknown> = new () => T;
+export type ServiceId = string | symbol;
+
+// TODO: Leave only one of these
+export type ServiceClass<T extends unknown> = new () => T;
+export type InstancedServiceClass<T> = new (...args: any[]) => T;
+export type ServiceInstanced<T> = T extends { new (...args: any[]): any }
+    ? never
+    : T;
 
 export type Setter = (object: unknown, value: unknown) => void;
 
-export type Inject = {
+export type Injection = {
     property: string | symbol;
     serviceId: ServiceId;
     set: Setter;
 };
 
-export type ProxyDI = {
+export type IProxyDiContainer = {
+    id: number;
+
     isKnown: (serviceId: ServiceId) => boolean;
 
     injectDependencies: (instance: any) => void;
 
-    registerInstance: <T>(
+    registerService: <T>(
         serviceId: ServiceId,
         instance: T extends { new (...args: any[]): any } ? never : T
     ) => void;
 
-    registerClass: <T>(
+    createService: <T>(
         serviceId: ServiceId,
-        serviceClass: ServiceClass<T>
+        serviceClass: InstancedServiceClass<T>
     ) => void;
 
-    resolve: <T>(serviceId: ServiceId) => T;
+    resolveDependency: <T>(
+        serviceId: ServiceId
+    ) => T & ContainerizedServiceInstance;
 
-    createChildContainer: () => ProxyDI;
+    // resolveFor: <T>(
+    //     inject: Injection,
+    //     injectionOwner: ContainerizedServiceInstance,
+    //     container: IProxyDiContainer
+    // ) => T & ContainerizedServiceInstance;
 
-    removeInstance: (serviceId: ServiceId | ProxydiedInstance) => void;
-    removeClass: (serviceId: ServiceId) => void;
+    createChildContainer: () => IProxyDiContainer;
+
+    removeService: (
+        serviceId: ServiceId | ContainerizedServiceInstance
+    ) => void;
     destroy: () => void;
 };
 
-export const INJECTS = Symbol('injects');
-export const PROXYDI = Symbol('ProxyDI');
+export const INJECTIONS = Symbol('injections');
 export const SERVICE_ID = Symbol('ServiceId');
 
-export type ReadyForProxidyInstance = {
-    [INJECTS]: Inject[];
+export type ServiceInstance = {
+    [INJECTIONS]: Injection[];
 };
 
-export type InjectedInstance = ReadyForProxidyInstance & {
-    [PROXYDI]: ProxyDI;
-};
-
-export type ProxydiedInstance = InjectedInstance & {
+export type ContainerizedServiceInstance = ServiceInstance & {
     [SERVICE_ID]: ServiceId;
 };
 
-export type ServiceClass<T> = new (...args: any[]) => T;
-
-export type ProxyDISettings = {
+export type ProxyDiSettings = {
     allowRegisterAnythingAsInstance?: boolean;
 
-    allowRewriteClasses?: boolean;
-    allowRewriteInstances?: boolean;
+    allowRewriteServices?: boolean;
 };
 export const IS_PROXY = Symbol('isProxy');
-export const INSTANCE = Symbol('instance');
+export const INJECTION_OWNER = Symbol('injectionOwner');
+export const PROXYDY_CONTAINER = Symbol('proxyDiContainer');
 
-export type InstanceProxy = {
+export type InjectionProxy = {
     [IS_PROXY]: true;
-    [INSTANCE]: ProxydiedInstance;
+    [INJECTION_OWNER]: ContainerizedServiceInstance;
+    [PROXYDY_CONTAINER]: IProxyDiContainer;
 };

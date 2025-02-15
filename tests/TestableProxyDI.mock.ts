@@ -1,11 +1,11 @@
-import { ProxyDI } from '../src/ProxyDI';
+import { ProxyDiContainer } from '../src/ProxyDI';
 
-export class TestableProxyDI extends ProxyDI {
+export class TestableProxyDI extends ProxyDiContainer {
     getChildren() {
         return (this as any).children;
     }
 
     desreaseIdCounter() {
-        (ProxyDI as any).idCounter--;
+        (ProxyDiContainer as any).idCounter--;
     }
 }

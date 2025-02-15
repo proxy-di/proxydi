@@ -1,4 +1,9 @@
-export { ProxyDI } from './ProxyDI';
+export { ProxyDiContainer as ProxyDI } from './ProxyDI';
 export { inject } from './inject';
-export { injectable } from './injectable';
-export { Inject, ServiceId, ServiceClass, ProxyDISettings } from './types';
+export { autoInjectableService } from './autoInjectableService';
+export {
+    Injection,
+    ServiceId,
+    InstancedServiceClass,
+    ProxyDiSettings,
+} from './types';

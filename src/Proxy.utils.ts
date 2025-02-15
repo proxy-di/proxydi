@@ -1,62 +1,70 @@
 import {
     IS_PROXY,
-    ServiceId,
-    InstanceProxy as IInstanceProxy,
-    ProxydiedInstance,
-    INSTANCE,
-    PROXYDI,
+    InjectionProxy as IInjectionProxy,
+    ContainerizedServiceInstance,
+    INJECTION_OWNER,
+    Injection,
+    IProxyDiContainer,
+    PROXYDY_CONTAINER,
 } from './types';
 
-class InstanceProxy implements IInstanceProxy {
+class InjectionProxy implements IInjectionProxy {
     [IS_PROXY]: true = true;
-    readonly [INSTANCE]: ProxydiedInstance;
+    readonly [INJECTION_OWNER]: ContainerizedServiceInstance;
+    readonly [PROXYDY_CONTAINER]: IProxyDiContainer;
 
-    constructor(instance: ProxydiedInstance) {
-        this[INSTANCE] = instance;
+    constructor(
+        onwer: ContainerizedServiceInstance,
+        container: IProxyDiContainer
+    ) {
+        this[INJECTION_OWNER] = onwer;
+        this[PROXYDY_CONTAINER] = container;
     }
 }
 
-export const makeProxy = <T>(serviceId: ServiceId, instance: any): T => {
-    return new Proxy(new InstanceProxy(instance), {
-        get: function (target: InstanceProxy, prop: string, receiver: any) {
+export const makeInjectionProxy = <T>(
+    inject: Injection,
+    injectionOwner: ContainerizedServiceInstance,
+    container: IProxyDiContainer
+): T => {
+    function getService() {
+        if (container.isKnown(inject.serviceId)) {
+            const value = container.resolveDependency(inject.serviceId) as any;
+            if (
+                isInjectionProxy(value) &&
+                value[PROXYDY_CONTAINER] !== container
+            ) {
+            }
+            return value;
+        } else {
+            throw new Error(
+                `Unknown ProxyDI-service: ${String(inject.serviceId)}`
+            );
+        }
+    }
+    return new Proxy(new InjectionProxy(injectionOwner, container), {
+        get: function (target: InjectionProxy, prop: string, receiver: any) {
             if ((target as any)[prop]) {
                 return (target as any)[prop];
             }
 
-            const container = target[INSTANCE][PROXYDI];
-
-            if (container.isKnown(serviceId)) {
-                const instance = container.resolve(serviceId) as any;
-                return Reflect.get(instance, prop, receiver);
-            } else {
-                throw new Error(`Unknown ProxyDI-service: ${serviceId}`);
-            }
+            const service = getService();
+            return Reflect.get(service, prop, receiver);
         },
 
-        set: function (target: InstanceProxy, prop: string, value: any) {
-            const container = target[INSTANCE][PROXYDI];
-
-            if (container.isKnown(serviceId)) {
-                const instance = container.resolve(serviceId) as any;
-                return Reflect.set(instance, prop, value);
-            } else {
-                throw new Error(`Unknown ProxyDI-service: ${serviceId}`);
-            }
+        set: function (target: InjectionProxy, prop: string, value: any) {
+            // TODO: Maybe should throw an error to deny set injections?
+            const service = getService();
+            return Reflect.set(service, prop, value);
         },
 
-        has: function (target: any, prop: string) {
-            const container = target[INSTANCE][PROXYDI];
-
-            if (container.isKnown(serviceId)) {
-                const instance = container.resolve(serviceId) as any;
-                return Reflect.has(instance, prop);
-            } else {
-                throw new Error(`Unknown ProxyDI-service: ${serviceId}`);
-            }
+        has: function (target: InjectionProxy, prop: string) {
+            const service = getService();
+            return Reflect.has(service, prop);
         },
-    });
+    }) as T;
 };
 
-export function isProxy(value: any): boolean {
+export function isInjectionProxy(value: any): boolean {
     return !!(value && value[IS_PROXY]);
 }
