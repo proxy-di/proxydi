@@ -13,4 +13,26 @@
     "extensions": {
         "recommendations": ["esbenp.prettier-vscode"],
     },
+
+    "launch": {
+        "configurations": [
+            {
+                "name": "Debug Vitest Tests",
+                "type": "node",
+                "request": "launch",
+                "runtimeExecutable": "node",
+                "runtimeArgs": [
+                    "--inspect-brk",
+                    "./node_modules/vitest/vitest.mjs",
+                    "--watch",
+                    "false",
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "internalConsoleOptions": "neverOpen",
+                "skipFiles": ["<node_internals>/**"],
+                "sourceMaps": true,
+            },
+        ],
+    },
 }
