@@ -18,9 +18,8 @@ describe('@autoInjectableService()', () => {
     it("should resolve dependency just by @autoInjectableService ID's without registration", () => {
         const container = new ProxyDI();
 
-        const service1 =
-            container.resolveDependency<FirstService>('FirstService');
-        const service2 = container.resolveDependency<SecondService>('second');
+        const service1 = container.resolve<FirstService>('FirstService');
+        const service2 = container.resolve<SecondService>('second');
 
         expect(service1.second.name).is.equals("I'm second!");
         expect(service2.first.name).is.equals("I'm first!");

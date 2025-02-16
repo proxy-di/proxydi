@@ -21,7 +21,7 @@ class OtherService {
 describe('Proxy utils', () => {
     it('isProxy()', () => {
         const container = new ProxyDI();
-        const instance = container.resolveDependency<any>(someServiceId);
+        const instance = container.resolve<any>(someServiceId);
         const proxy = makeInjectionProxy<SomeService>(
             instance[INJECTIONS][0],
             instance,
@@ -35,7 +35,7 @@ describe('Proxy utils', () => {
         it('get', () => {
             const container = new ProxyDI();
             const otherService =
-                container.resolveDependency<any>(otherServiceId);
+                container.resolve<any>(otherServiceId);
             const someServiceProxy = makeInjectionProxy<SomeService>(
                 otherService[INJECTIONS][0],
                 otherService,
@@ -47,7 +47,7 @@ describe('Proxy utils', () => {
 
         it('get, unknown service', () => {
             const container = new ProxyDI();
-            const someService = container.resolveDependency<any>(someServiceId);
+            const someService = container.resolve<any>(someServiceId);
 
             const proxy = makeInjectionProxy<any>(
                 someService[INJECTIONS][0],
@@ -63,7 +63,7 @@ describe('Proxy utils', () => {
         it('set', () => {
             const container = new ProxyDI();
             const otherService =
-                container.resolveDependency<any>(otherServiceId);
+                container.resolve<any>(otherServiceId);
 
             const proxy = makeInjectionProxy<SomeService>(
                 otherService[INJECTIONS][0],
@@ -78,7 +78,7 @@ describe('Proxy utils', () => {
         it('set, unknown service', () => {
             const container = new ProxyDI();
             const someInstance =
-                container.resolveDependency<any>(someServiceId);
+                container.resolve<any>(someServiceId);
 
             const unknownService = makeInjectionProxy<any>(
                 someInstance[INJECTIONS][0],
@@ -94,7 +94,7 @@ describe('Proxy utils', () => {
         it('has, property for known service', () => {
             const container = new ProxyDI();
             const otherService =
-                container.resolveDependency<any>(otherServiceId);
+                container.resolve<any>(otherServiceId);
             const proxy = makeInjectionProxy<SomeService>(
                 otherService[INJECTIONS][0],
                 otherService,
@@ -107,7 +107,7 @@ describe('Proxy utils', () => {
 
         it('has, unknown service should throw error', () => {
             const container = new ProxyDI();
-            const someService = container.resolveDependency<any>(someServiceId);
+            const someService = container.resolve<any>(someServiceId);
             const proxy = makeInjectionProxy<SomeService>(
                 someService[INJECTIONS][0],
                 someService,

@@ -138,7 +138,7 @@ describe('ProxyDI', () => {
         it("Can't resolve unknown service", () => {
             const container = new ProxyDI();
 
-            expect(() => container.resolveDependency(serviceId)).toThrowError(
+            expect(() => container.resolve(serviceId)).toThrowError(
                 `Can't resolve unknown ProxyDI-service: ${serviceId}`
             );
         });
@@ -147,18 +147,21 @@ describe('ProxyDI', () => {
             const container = new ProxyDI();
             container.createService(serviceId, FirstService);
 
-            expect(container.resolveDependency(serviceId)).is.instanceOf(
-                FirstService
-            );
+            expect(container.resolve(serviceId)).is.instanceOf(FirstService);
         });
 
         it('resolve instance', () => {
             const container = new ProxyDI();
-            const instance = new FirstService();
-            container.registerService(serviceId, instance);
 
-            expect(container.resolveDependency(serviceId)).equal(instance);
-            expect(instance[SERVICE_ID]).is.equals(serviceId);
+            container.createService('second', SecondService);
+            const instance = new FirstService();
+            container.registerService('first', instance);
+
+            const first = container.resolve<FirstService>('first');
+
+            expect(first).not.equals(instance);
+            expect(first.name).equals("I'm first!");
+            expect(instance[SERVICE_ID]).is.equals('first');
         });
     });
 
@@ -169,9 +172,8 @@ describe('ProxyDI', () => {
             container.createService('first', FirstService);
             container.createService('second', SecondService);
 
-            const service1 = container.resolveDependency<FirstService>('first');
-            const service2 =
-                container.resolveDependency<SecondService>('second');
+            const service1 = container.resolve<FirstService>('first');
+            const service2 = container.resolve<SecondService>('second');
 
             expect(service1.second.name).is.equals("I'm second!");
             expect(service2.first.name).is.equals("I'm first!");
@@ -185,7 +187,7 @@ describe('ProxyDI', () => {
             const service2 = new SecondService();
             container.registerService('second', service2);
 
-            const service1 = container.resolveDependency<FirstService>('first');
+            const service1 = container.resolve<FirstService>('first');
 
             expect(service1.second.name).is.equals("I'm second!");
             expect(service2.first.name).is.equals("I'm first!");
@@ -285,7 +287,7 @@ describe('ProxyDI', () => {
 
             const child = parent.createChildContainer();
 
-            const service1 = child.resolveDependency<FirstService>('first');
+            const service1 = child.resolve<FirstService>('first');
             expect(service1.name).is.equals("I'm first!");
         });
 
@@ -294,8 +296,7 @@ describe('ProxyDI', () => {
             container.createService('first', FirstService);
             container.createService('second', SecondService);
 
-            const service2 =
-                container.resolveDependency<SecondService>('second');
+            const service2 = container.resolve<SecondService>('second');
 
             expect(service2.first.name).equals("I'm first!");
 
@@ -311,7 +312,7 @@ describe('ProxyDI', () => {
             container.registerService('literal', 'any value');
             expect(container.isKnown('literal')).is.true;
 
-            const anyValue = container.resolveDependency('literal');
+            const anyValue = container.resolve('literal');
 
             expect(anyValue).equals('any value');
 
@@ -320,21 +321,19 @@ describe('ProxyDI', () => {
             expect(container.isKnown('literal')).is.false;
         });
 
-        it.only('resolve parent dependencies,  but not vise versa', () => {
+        it('resolve parent dependencies, but not vise versa', () => {
             const parent = new ProxyDI();
             parent.createService('first', FirstService);
-            const service1Parent =
-                parent.resolveDependency<FirstService>('first');
+            const service1Parent = parent.resolve<FirstService>('first');
             expect(() => service1Parent.second.name).toThrowError(
                 'Unknown ProxyDI-service'
             );
 
             const child = parent.createChildContainer();
             child.createService('second', SecondService);
-            const service1Child =
-                child.resolveDependency<FirstService>('first');
+            const service1Child = child.resolve<FirstService>('first');
 
-            const service2 = child.resolveDependency<SecondService>('second');
+            const service2 = child.resolve<SecondService>('second');
 
             expect(service2.first.name).equals("I'm first!");
             expect(service1Child.second.name).equals("I'm second!");

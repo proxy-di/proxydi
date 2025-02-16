@@ -53,7 +53,7 @@ class Jarvis implements Personality {
 }
 
 const container = new ProxyDI();
-container.registerClass('personality', Jarvis);
+container.createService('personality', Jarvis);
 ```
 
 3. Use dependencies

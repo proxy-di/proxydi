@@ -1,15 +1,19 @@
 import {
-    IS_PROXY,
+    IS_INJECTION_PROXY,
     InjectionProxy as IInjectionProxy,
     ContainerizedServiceInstance,
     INJECTION_OWNER,
     Injection,
     IProxyDiContainer,
     PROXYDY_CONTAINER,
+    IS_INSTANCE_PROXY,
+    INSTANCE,
+    INJECTIONS,
+    ServiceId,
 } from './types';
 
 class InjectionProxy implements IInjectionProxy {
-    [IS_PROXY]: true = true;
+    [IS_INJECTION_PROXY]: true = true;
     readonly [INJECTION_OWNER]: ContainerizedServiceInstance;
     readonly [PROXYDY_CONTAINER]: IProxyDiContainer;
 
@@ -29,13 +33,7 @@ export const makeInjectionProxy = <T>(
 ): T => {
     function getService() {
         if (container.isKnown(inject.serviceId)) {
-            const value = container.resolveDependency(inject.serviceId) as any;
-            if (
-                isInjectionProxy(value) &&
-                value[PROXYDY_CONTAINER] !== container
-            ) {
-            }
-            return value;
+            return container.resolve(inject.serviceId) as any;
         } else {
             throw new Error(
                 `Unknown ProxyDI-service: ${String(inject.serviceId)}`
@@ -65,6 +63,46 @@ export const makeInjectionProxy = <T>(
     }) as T;
 };
 
+export function makeInstanceProxy(instance: any, container: IProxyDiContainer) {
+    const reinjects: Record<ServiceId, ContainerizedServiceInstance> = {};
+
+    return new Proxy(instance, {
+        get: function (target, prop, receiver) {
+            if (reinjects[prop]) {
+                return reinjects[prop];
+            }
+            if (prop === IS_INSTANCE_PROXY) {
+                return true;
+            }
+            if (prop === INSTANCE) {
+                return instance;
+            }
+            if (target[prop]) {
+                let value = target[prop];
+                if (
+                    isInjectionProxy(value) &&
+                    value[PROXYDY_CONTAINER] !== container
+                ) {
+                    const serviceInjects: Injection[] =
+                        instance[INJECTIONS] || [];
+
+                    serviceInjects.forEach((inject: Injection) => {
+                        value = makeInjectionProxy(inject, instance, container);
+                        reinjects[inject.property] = value;
+                    });
+                }
+                return value;
+            }
+
+            return Reflect.get(target, prop, receiver);
+        },
+    });
+}
+
 export function isInjectionProxy(value: any): boolean {
-    return !!(value && value[IS_PROXY]);
+    return !!(value && value[IS_INJECTION_PROXY]);
+}
+
+export function isInstanceProxy(value: any): boolean {
+    return !!(value && value[IS_INSTANCE_PROXY]);
 }

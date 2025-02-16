@@ -5,11 +5,12 @@ import {
     ContainerizedServiceInstance,
     ServiceInstanced,
     ServiceClass,
+    PROXYDY_CONTAINER,
 } from './types';
 import { autoInjectableServices } from './autoInjectableService';
 import { Injection, ProxyDiSettings, ServiceId } from './types';
 import { DEFAULT_SETTINGS } from './presets';
-import { makeInjectionProxy } from './Proxy.utils';
+import { makeInjectionProxy, makeInstanceProxy } from './Proxy.utils';
 
 export class ProxyDiContainer implements IProxyDiContainer {
     private static idCounter = 0;
@@ -18,8 +19,15 @@ export class ProxyDiContainer implements IProxyDiContainer {
     public readonly parent?: ProxyDiContainer;
     private children: Record<number, IProxyDiContainer> = {};
 
-    private serviceInstances: Record<ServiceId, any> = {};
-    private parentWrappers: Record<ServiceId, any> = {};
+    /**
+     * Holds instances of services registered in particular this container
+     */
+    private serviceInstances: Record<ServiceId, ContainerizedServiceInstance> =
+        {};
+    private parentInstanceProxies: Record<
+        ServiceId,
+        ContainerizedServiceInstance
+    > = {};
 
     private settings: Required<ProxyDiSettings>;
 
@@ -83,39 +91,43 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
     isKnown(serviceId: ServiceId): boolean {
         return !!(
-            this.parentWrappers[serviceId] ||
+            this.parentInstanceProxies[serviceId] ||
             this.findInstance(serviceId) ||
             (this.parent && this.parent.isKnown(serviceId)) ||
             autoInjectableServices[serviceId]
         );
     }
 
-    resolveDependency<T>(
-        serviceId: ServiceId
-    ): T & ContainerizedServiceInstance {
+    resolve<T>(serviceId: ServiceId): T & ContainerizedServiceInstance {
         if (!this.isKnown(serviceId)) {
             throw new Error(
                 `Can't resolve unknown ProxyDI-service: ${String(serviceId)}`
             );
         }
 
-        // TODO: Any instance's injections should be wrapped by proxy from this container
-        // 1. makeContainerWrapperProxy() with real instance as target object
-        // 2. Reinject all dependencies by container's injectionProxies
-
-        const proxy = this.parentWrappers[serviceId];
+        const proxy = this.parentInstanceProxies[serviceId];
         if (proxy) {
-            return proxy;
+            return proxy as T & ContainerizedServiceInstance;
         }
 
         const instance = this.findInstance<T>(serviceId);
         if (instance) {
+            if (
+                instance[PROXYDY_CONTAINER] !== this &&
+                typeof instance === 'object'
+            ) {
+                const proxy = makeInstanceProxy(instance, this);
+                this.parentInstanceProxies[serviceId] = proxy;
+                return proxy as any as T & ContainerizedServiceInstance;
+            }
             return instance;
         }
 
         const AutoInjectableService = autoInjectableServices[serviceId];
+
         const newInstance = new AutoInjectableService();
         this.registerInstanceImplementation(serviceId, newInstance);
+        this.serviceInstances[serviceId] = newInstance;
         return newInstance;
     }
 
@@ -123,15 +135,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         const serviceInjects: Injection[] = injectionsOwner[INJECTIONS] || [];
 
         serviceInjects.forEach((inject: Injection) => {
-            // TODO: Hold only real instances in this.serviceInstances
-            // TODO: Hold only injectionProxies (or injectionWrappers?) in injection values
-            //const value = makeInjectionProxy(inject, instance, this);
-
-            let value = this.findInstance(inject.serviceId);
-            if (!value) {
-                value = makeInjectionProxy(inject, injectionsOwner, this);
-            }
-
+            const value = makeInjectionProxy(inject, injectionsOwner, this);
             inject.set(injectionsOwner, value);
         });
     }
@@ -150,7 +154,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
             serviceInjects.forEach((inject: Injection) => {
                 inject.set(instance, undefined);
             });
-            delete instance[SERVICE_ID];
+            delete (instance as any)[SERVICE_ID];
 
             delete this.serviceInstances[id];
         }
@@ -186,18 +190,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
                 T & ContainerizedServiceInstance
             >(serviceId);
 
-            // TODO: Check if this proxy rewrite new proxy and find the instance
-
-            // if (parentInstance && forContainer) {
-            //     const proxy = makeInjectionProxy(parentInstance, this);
-            //     this.parentProxies[serviceId] = proxy;
-            //     return proxy as T;
-            // }
-
             return parentInstance;
         }
 
-        return instance;
+        return instance as T & ContainerizedServiceInstance;
     }
 
     private addChild(child: ProxyDiContainer) {

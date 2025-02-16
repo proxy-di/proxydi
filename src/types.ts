@@ -34,9 +34,7 @@ export type IProxyDiContainer = {
         serviceClass: InstancedServiceClass<T>
     ) => void;
 
-    resolveDependency: <T>(
-        serviceId: ServiceId
-    ) => T & ContainerizedServiceInstance;
+    resolve: <T>(serviceId: ServiceId) => T & ContainerizedServiceInstance;
 
     // resolveFor: <T>(
     //     inject: Injection,
@@ -61,6 +59,7 @@ export type ServiceInstance = {
 
 export type ContainerizedServiceInstance = ServiceInstance & {
     [SERVICE_ID]: ServiceId;
+    [PROXYDY_CONTAINER]: IProxyDiContainer;
 };
 
 export type ProxyDiSettings = {
@@ -68,12 +67,16 @@ export type ProxyDiSettings = {
 
     allowRewriteServices?: boolean;
 };
-export const IS_PROXY = Symbol('isProxy');
+
+export const IS_INJECTION_PROXY = Symbol('isInjectionProxy');
 export const INJECTION_OWNER = Symbol('injectionOwner');
 export const PROXYDY_CONTAINER = Symbol('proxyDiContainer');
+export const IS_INSTANCE_PROXY = Symbol('isInstanceProxy');
+export const INSTANCE = Symbol('instance');
+
 
 export type InjectionProxy = {
-    [IS_PROXY]: true;
+    [IS_INJECTION_PROXY]: true;
     [INJECTION_OWNER]: ContainerizedServiceInstance;
     [PROXYDY_CONTAINER]: IProxyDiContainer;
 };
