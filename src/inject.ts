@@ -21,10 +21,10 @@ export const inject = (serviceId?: ServiceId) => {
 
             context.addInitializer(function (this: any) {
                 if (!this[INJECTIONS]) {
-                    this[INJECTIONS] = [];
+                    this[INJECTIONS] = {};
                 }
 
-                this[INJECTIONS].push(injection);
+                this[INJECTIONS][injection.property] = injection;
             });
         } else {
             throw new Error('@inject decorator should decorate fields');

@@ -4,6 +4,9 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'node',
+        chaiConfig: {
+            includeStack: true,
+        },
         coverage: {
             reporter: ['text', 'lcov'],
             exclude: [

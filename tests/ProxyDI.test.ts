@@ -5,7 +5,7 @@ import { SERVICE_ID } from '../src/types';
 import { autoInjectableService } from '../src/autoInjectableService';
 
 class FirstService {
-    name = "I'm first!";
+    constructor(public readonly name: string = "I'm first!") {}
     @inject() second: SecondService;
 }
 
@@ -129,6 +129,14 @@ describe('ProxyDI', () => {
             container.registerService(serviceId, 'any value');
 
             expect(container.isKnown(serviceId)).is.true;
+        });
+
+        it('known in parent', () => {
+            const parent = new ProxyDI();
+            parent.createService(serviceId, FirstService);
+
+            const child = parent.createChildContainer();
+            expect(child.isKnown(serviceId)).is.true;
         });
     });
 
@@ -254,7 +262,7 @@ describe('ProxyDI', () => {
         });
     });
 
-    describe('children', () => {
+    describe('hierarchy', () => {
         it('should have parent', () => {
             const parent = new ProxyDI();
             const child = parent.createChildContainer();
@@ -294,13 +302,13 @@ describe('ProxyDI', () => {
         it('removeInstance() clear dependencies', () => {
             const container = new ProxyDI();
             container.createService('first', FirstService);
-            container.createService('second', SecondService);
 
-            const service2 = container.resolve<SecondService>('second');
+            const service2 = new SecondService();
+            container.registerService('second', service2);
 
             expect(service2.first.name).equals("I'm first!");
 
-            container.removeService(service2);
+            container.removeService('second');
 
             expect(service2.first).is.undefined;
         });
@@ -337,6 +345,23 @@ describe('ProxyDI', () => {
 
             expect(service2.first.name).equals("I'm first!");
             expect(service1Child.second.name).equals("I'm second!");
+        });
+
+        it("resolve() takes dependencies from it's container", () => {
+            const parent = new ProxyDI();
+            parent.createService('second', SecondService);
+
+            const child1 = parent.createChildContainer();
+            child1.registerService('first', new FirstService('from child #1'));
+
+            const child2 = parent.createChildContainer();
+            child2.registerService('first', new FirstService('from child #2'));
+
+            const secondFromChild1 = child1.resolve<SecondService>('second');
+            const secondFromChild2 = child2.resolve<SecondService>('second');
+
+            expect(secondFromChild1.first.name).equals('from child #1');
+            expect(secondFromChild2.first.name).equals('from child #2');
         });
     });
 });

@@ -53,8 +53,9 @@ export type IProxyDiContainer = {
 export const INJECTIONS = Symbol('injections');
 export const SERVICE_ID = Symbol('ServiceId');
 
+export type Injections = Record<string | symbol, Injection>;
 export type ServiceInstance = {
-    [INJECTIONS]: Injection[];
+    [INJECTIONS]: Injections;
 };
 
 export type ContainerizedServiceInstance = ServiceInstance & {
@@ -72,8 +73,6 @@ export const IS_INJECTION_PROXY = Symbol('isInjectionProxy');
 export const INJECTION_OWNER = Symbol('injectionOwner');
 export const PROXYDY_CONTAINER = Symbol('proxyDiContainer');
 export const IS_INSTANCE_PROXY = Symbol('isInstanceProxy');
-export const INSTANCE = Symbol('instance');
-
 
 export type InjectionProxy = {
     [IS_INJECTION_PROXY]: true;

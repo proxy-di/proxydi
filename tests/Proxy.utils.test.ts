@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { isInjectionProxy, makeInjectionProxy } from '../src/Proxy.utils';
+import {
+    isInjectionProxy,
+    isInstanceProxy,
+    makeInjectionProxy,
+    makeInstanceProxy,
+} from '../src/Proxy.utils';
 import { autoInjectableService, inject, ProxyDI } from '../src/index';
 import { INJECTIONS } from '../src/types';
 
@@ -31,13 +36,40 @@ describe('Proxy utils', () => {
         expect(isInjectionProxy(proxy)).is.true;
     });
 
+    describe('makeInstanceProxy()', () => {
+        @autoInjectableService('serviceToInject')
+        class ServiceToInject {
+            value: string = 'injected';
+        }
+
+        class Client {
+            @inject()
+            serviceToInject: ServiceToInject;
+
+            ownValue = 'ownValue';
+        }
+
+        it('should wrap instance', () => {
+            const container = new ProxyDI();
+            container.registerService('client', new Client());
+            const client = container.resolve<Client>('client');
+            const clientWrapper = makeInstanceProxy(client);
+
+            expect(isInstanceProxy(clientWrapper)).is.true;
+
+            expect(clientWrapper.ownValue).equals('ownValue');
+
+            client.ownValue = 'changed';
+            expect(clientWrapper.ownValue).equals('changed');
+        });
+    });
+
     describe('makeInjectProxy()', () => {
         it('get', () => {
             const container = new ProxyDI();
-            const otherService =
-                container.resolve<any>(otherServiceId);
+            const otherService = container.resolve<any>(otherServiceId);
             const someServiceProxy = makeInjectionProxy<SomeService>(
-                otherService[INJECTIONS][0],
+                otherService[INJECTIONS][someServiceId],
                 otherService,
                 container
             );
@@ -50,7 +82,7 @@ describe('Proxy utils', () => {
             const someService = container.resolve<any>(someServiceId);
 
             const proxy = makeInjectionProxy<any>(
-                someService[INJECTIONS][0],
+                someService[INJECTIONS]['unknown'],
                 someService,
                 container
             );
@@ -62,11 +94,10 @@ describe('Proxy utils', () => {
 
         it('set', () => {
             const container = new ProxyDI();
-            const otherService =
-                container.resolve<any>(otherServiceId);
+            const otherService = container.resolve<any>(otherServiceId);
 
             const proxy = makeInjectionProxy<SomeService>(
-                otherService[INJECTIONS][0],
+                otherService[INJECTIONS][someServiceId],
                 otherService,
                 container
             );
@@ -77,11 +108,10 @@ describe('Proxy utils', () => {
 
         it('set, unknown service', () => {
             const container = new ProxyDI();
-            const someInstance =
-                container.resolve<any>(someServiceId);
+            const someInstance = container.resolve<any>(someServiceId);
 
             const unknownService = makeInjectionProxy<any>(
-                someInstance[INJECTIONS][0],
+                someInstance[INJECTIONS]['unknown'],
                 someInstance,
                 container
             );
@@ -93,10 +123,9 @@ describe('Proxy utils', () => {
 
         it('has, property for known service', () => {
             const container = new ProxyDI();
-            const otherService =
-                container.resolve<any>(otherServiceId);
+            const otherService = container.resolve<any>(otherServiceId);
             const proxy = makeInjectionProxy<SomeService>(
-                otherService[INJECTIONS][0],
+                otherService[INJECTIONS][someServiceId],
                 otherService,
                 container
             );
@@ -109,7 +138,7 @@ describe('Proxy utils', () => {
             const container = new ProxyDI();
             const someService = container.resolve<any>(someServiceId);
             const proxy = makeInjectionProxy<SomeService>(
-                someService[INJECTIONS][0],
+                someService[INJECTIONS]['unknown'],
                 someService,
                 container
             );

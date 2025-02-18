@@ -7,9 +7,6 @@ import {
     IProxyDiContainer,
     PROXYDY_CONTAINER,
     IS_INSTANCE_PROXY,
-    INSTANCE,
-    INJECTIONS,
-    ServiceId,
 } from './types';
 
 class InjectionProxy implements IInjectionProxy {
@@ -51,7 +48,6 @@ export const makeInjectionProxy = <T>(
         },
 
         set: function (target: InjectionProxy, prop: string, value: any) {
-            // TODO: Maybe should throw an error to deny set injections?
             const service = getService();
             return Reflect.set(service, prop, value);
         },
@@ -63,38 +59,24 @@ export const makeInjectionProxy = <T>(
     }) as T;
 };
 
-export function makeInstanceProxy(instance: any, container: IProxyDiContainer) {
-    const reinjects: Record<ServiceId, ContainerizedServiceInstance> = {};
+export function makeInstanceProxy(instance: any) {
+    const injectionValues: Record<string | symbol, any> = {};
 
     return new Proxy(instance, {
         get: function (target, prop, receiver) {
-            if (reinjects[prop]) {
-                return reinjects[prop];
-            }
             if (prop === IS_INSTANCE_PROXY) {
                 return true;
             }
-            if (prop === INSTANCE) {
-                return instance;
-            }
-            if (target[prop]) {
-                let value = target[prop];
-                if (
-                    isInjectionProxy(value) &&
-                    value[PROXYDY_CONTAINER] !== container
-                ) {
-                    const serviceInjects: Injection[] =
-                        instance[INJECTIONS] || [];
-
-                    serviceInjects.forEach((inject: Injection) => {
-                        value = makeInjectionProxy(inject, instance, container);
-                        reinjects[inject.property] = value;
-                    });
-                }
-                return value;
+            if (injectionValues[prop]) {
+                return injectionValues[prop];
             }
 
             return Reflect.get(target, prop, receiver);
+        },
+
+        set: function (target: InjectionProxy, prop: string, value: any) {
+            injectionValues[prop] = value;
+            return Reflect.set(target, prop, value);
         },
     });
 }

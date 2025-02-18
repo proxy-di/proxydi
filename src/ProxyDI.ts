@@ -6,6 +6,7 @@ import {
     ServiceInstanced,
     ServiceClass,
     PROXYDY_CONTAINER,
+    Injections,
 } from './types';
 import { autoInjectableServices } from './autoInjectableService';
 import { Injection, ProxyDiSettings, ServiceId } from './types';
@@ -92,7 +93,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
     isKnown(serviceId: ServiceId): boolean {
         return !!(
             this.parentInstanceProxies[serviceId] ||
-            this.findInstance(serviceId) ||
+            this.serviceInstances[serviceId] ||
             (this.parent && this.parent.isKnown(serviceId)) ||
             autoInjectableServices[serviceId]
         );
@@ -116,7 +117,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
                 instance[PROXYDY_CONTAINER] !== this &&
                 typeof instance === 'object'
             ) {
-                const proxy = makeInstanceProxy(instance, this);
+                const proxy = makeInstanceProxy(instance);
+                this.injectDependencies(proxy);
                 this.parentInstanceProxies[serviceId] = proxy;
                 return proxy as any as T & ContainerizedServiceInstance;
             }
@@ -132,9 +134,9 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 
     injectDependencies(injectionsOwner: any) {
-        const serviceInjects: Injection[] = injectionsOwner[INJECTIONS] || [];
+        const serviceInjects: Injections = injectionsOwner[INJECTIONS] || {};
 
-        serviceInjects.forEach((inject: Injection) => {
+        Object.values(serviceInjects).forEach((inject: Injection) => {
             const value = makeInjectionProxy(inject, injectionsOwner, this);
             inject.set(injectionsOwner, value);
         });
@@ -148,10 +150,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
         const id = isInstance(serviceId) ? serviceId[SERVICE_ID] : serviceId;
         const instance = this.serviceInstances[id];
         if (instance) {
-            const serviceInjects: Injection[] = instance[INJECTIONS]
+            const serviceInjects: Injections = instance[INJECTIONS]
                 ? instance[INJECTIONS]
-                : [];
-            serviceInjects.forEach((inject: Injection) => {
+                : {};
+            Object.values(serviceInjects).forEach((inject: Injection) => {
                 inject.set(instance, undefined);
             });
             delete (instance as any)[SERVICE_ID];
@@ -161,16 +163,14 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 
     destroy() {
-        const allServices = Object.keys(this.serviceInstances);
-        for (const serviceId of allServices) {
-            const instance = this.serviceInstances[serviceId];
-            this.removeService(instance);
+        const allServices = Object.values(this.serviceInstances);
+        for (const service of allServices) {
+            this.removeService(service);
         }
 
         this.serviceInstances = {};
 
-        for (const id of Object.keys(this.children)) {
-            const child = this.children[+id];
+        for (const child of Object.values(this.children)) {
             child.destroy();
         }
         this.children = {};
