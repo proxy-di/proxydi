@@ -38,6 +38,7 @@ interface Personality {
     greet(): string;
 }
 
+@autoInjectableServivce()
 class Agent {
     @inject() personality: Personality;
 }
@@ -59,7 +60,7 @@ container.createService('personality', Jarvis);
 3. Use dependencies
 
 ```typescript
-const agent = container.resolve(Agent);
+const agent = container.resolveAutoInjectable(Agent);
 console.log(agent.personality.greet());
 ```
 

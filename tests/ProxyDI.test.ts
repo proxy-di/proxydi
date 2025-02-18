@@ -16,7 +16,7 @@ class SecondService {
 
 @autoInjectableService('any')
 class AnyService {
-    constructor(public readonly name) {}
+    name = 'any service';
 }
 
 describe('ProxyDI', () => {
@@ -362,6 +362,23 @@ describe('ProxyDI', () => {
 
             expect(secondFromChild1.first.name).equals('from child #1');
             expect(secondFromChild2.first.name).equals('from child #2');
+        });
+    });
+
+    describe('resolve by class', () => {
+        it('should resolve by auto injectable class', () => {
+            const container = new ProxyDI();
+            const anyService = container.resolveAutoInjectable(AnyService);
+
+            expect(anyService.name).equals('any service');
+        });
+
+        it('should be auto injectable', () => {
+            const container = new ProxyDI();
+
+            expect(() =>
+                container.resolveAutoInjectable(FirstService)
+            ).toThrowError('Service is not auto injectable');
         });
     });
 });

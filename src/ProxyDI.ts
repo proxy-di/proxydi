@@ -99,7 +99,28 @@ export class ProxyDiContainer implements IProxyDiContainer {
         );
     }
 
-    resolve<T>(serviceId: ServiceId): T & ContainerizedServiceInstance {
+    resolveAutoInjectable<T extends new () => any>(
+        service: T
+    ): InstanceType<T> {
+        for (const [serviceId, ServiceClass] of Object.entries(
+            autoInjectableServices
+        )) {
+            if (ServiceClass === service) {
+                return this.resolve(serviceId);
+            }
+        }
+
+        throw new Error(`Service is not auto injectable: ${service.name}`);
+    }
+
+    resolve<T>(service: ServiceId): T & ContainerizedServiceInstance {
+        const isServiceId =
+            typeof service === 'string' || typeof service === 'symbol';
+
+        let serviceId: ServiceId = service;
+        if (!isServiceId) {
+        }
+
         if (!this.isKnown(serviceId)) {
             throw new Error(
                 `Can't resolve unknown ProxyDI-service: ${String(serviceId)}`
