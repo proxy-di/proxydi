@@ -1,5 +1,3 @@
-import { ProxyDiContainer } from './ProxyDI';
-
 export type ServiceId = string | symbol;
 
 // TODO: Leave only one of these

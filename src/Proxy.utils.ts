@@ -33,7 +33,7 @@ export const makeInjectionProxy = <T>(
             return container.resolve(inject.serviceId) as any;
         } else {
             throw new Error(
-                `Unknown ProxyDI-service: ${String(inject.serviceId)}`
+                `Unknown ProxyDi-service: ${String(inject.serviceId)}`
             );
         }
     }

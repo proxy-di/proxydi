@@ -25,7 +25,7 @@ export const autoInjectableService = (serviceId?: ServiceId) => {
 
             if (autoInjectableServices[name]) {
                 throw new Error(
-                    `ProxyDI autoInjectableService already has service ID: ${String(name)}`
+                    `ProxyDi autoInjectableService already has service ID: ${String(name)}`
                 );
             }
 

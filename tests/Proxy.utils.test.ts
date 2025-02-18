@@ -5,7 +5,7 @@ import {
     makeInjectionProxy,
     makeInstanceProxy,
 } from '../src/Proxy.utils';
-import { autoInjectableService, inject, ProxyDI } from '../src/index';
+import { autoInjectableService, inject, ProxyDiContainer } from '../src/index';
 import { INJECTIONS } from '../src/types';
 
 const someServiceId = 'someService';
@@ -25,7 +25,7 @@ class OtherService {
 
 describe('Proxy utils', () => {
     it('isProxy()', () => {
-        const container = new ProxyDI();
+        const container = new ProxyDiContainer();
         const instance = container.resolve<any>(someServiceId);
         const proxy = makeInjectionProxy<SomeService>(
             instance[INJECTIONS][0],
@@ -50,7 +50,7 @@ describe('Proxy utils', () => {
         }
 
         it('should wrap instance', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             container.registerService('client', new Client());
             const client = container.resolve<Client>('client');
             const clientWrapper = makeInstanceProxy(client);
@@ -66,7 +66,7 @@ describe('Proxy utils', () => {
 
     describe('makeInjectProxy()', () => {
         it('get', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const otherService = container.resolve<any>(otherServiceId);
             const someServiceProxy = makeInjectionProxy<SomeService>(
                 otherService[INJECTIONS][someServiceId],
@@ -78,7 +78,7 @@ describe('Proxy utils', () => {
         });
 
         it('get, unknown service', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const someService = container.resolve<any>(someServiceId);
 
             const proxy = makeInjectionProxy<any>(
@@ -88,12 +88,12 @@ describe('Proxy utils', () => {
             );
 
             expect(() => proxy.anyValue).toThrowError(
-                `Unknown ProxyDI-service`
+                `Unknown ProxyDi-service`
             );
         });
 
         it('set', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const otherService = container.resolve<any>(otherServiceId);
 
             const proxy = makeInjectionProxy<SomeService>(
@@ -107,7 +107,7 @@ describe('Proxy utils', () => {
         });
 
         it('set, unknown service', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const someInstance = container.resolve<any>(someServiceId);
 
             const unknownService = makeInjectionProxy<any>(
@@ -117,12 +117,12 @@ describe('Proxy utils', () => {
             );
 
             expect(() => (unknownService.someValue = 2)).toThrowError(
-                `Unknown ProxyDI-service`
+                `Unknown ProxyDi-service`
             );
         });
 
         it('has, property for known service', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const otherService = container.resolve<any>(otherServiceId);
             const proxy = makeInjectionProxy<SomeService>(
                 otherService[INJECTIONS][someServiceId],
@@ -135,7 +135,7 @@ describe('Proxy utils', () => {
         });
 
         it('has, unknown service should throw error', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const someService = container.resolve<any>(someServiceId);
             const proxy = makeInjectionProxy<SomeService>(
                 someService[INJECTIONS]['unknown'],
@@ -145,7 +145,7 @@ describe('Proxy utils', () => {
 
             expect(() => {
                 'someValue' in proxy;
-            }).toThrowError(`Unknown ProxyDI-service`);
+            }).toThrowError(`Unknown ProxyDi-service`);
         });
     });
 });

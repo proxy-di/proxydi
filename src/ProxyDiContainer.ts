@@ -47,7 +47,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         if (this.serviceInstances[serviceId]) {
             if (!this.settings.allowRewriteServices) {
                 throw new Error(
-                    `ProxyDI already has registered instance for ${String(serviceId)}`
+                    `ProxyDi already has registered instance for ${String(serviceId)}`
                 );
             }
         }
@@ -57,7 +57,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
             !this.settings.allowRegisterAnythingAsInstance
         ) {
             throw new Error(
-                `Can't register as instance (allowRegisterAnythingAsInstance is off for this ProxyDI contatiner): ${instance}`
+                `Can't register as instance (allowRegisterAnythingAsInstance is off for this ProxyDi contatiner): ${instance}`
             );
         }
 
@@ -81,7 +81,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         if (this.serviceInstances[serviceId]) {
             if (!this.settings.allowRewriteServices) {
                 throw new Error(
-                    `ProxyDI already has registered class for ${String(serviceId)}`
+                    `ProxyDi already has registered class for ${String(serviceId)}`
                 );
             }
         }
@@ -113,17 +113,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
         throw new Error(`Service is not auto injectable: ${service.name}`);
     }
 
-    resolve<T>(service: ServiceId): T & ContainerizedServiceInstance {
-        const isServiceId =
-            typeof service === 'string' || typeof service === 'symbol';
-
-        let serviceId: ServiceId = service;
-        if (!isServiceId) {
-        }
-
+    resolve<T>(serviceId: ServiceId): T & ContainerizedServiceInstance {
         if (!this.isKnown(serviceId)) {
             throw new Error(
-                `Can't resolve unknown ProxyDI-service: ${String(serviceId)}`
+                `Can't resolve unknown ProxyDi-service: ${String(serviceId)}`
             );
         }
 
@@ -219,7 +212,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
     private addChild(child: ProxyDiContainer) {
         if (this.children[child.id]) {
-            throw new Error(`ProxyDI already has child with id ${child.id}`);
+            throw new Error(`ProxyDi already has child with id ${child.id}`);
         }
 
         this.children[child.id] = child;

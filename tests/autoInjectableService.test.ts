@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inject, ProxyDI } from '../src/index';
-import { autoInjectableService } from '../src/autoInjectableService';
+import { inject, ProxyDiContainer, autoInjectableService } from '../src/index';
 
 @autoInjectableService()
 class FirstService {
@@ -16,7 +15,7 @@ class SecondService {
 
 describe('@autoInjectableService()', () => {
     it("should resolve dependency just by @autoInjectableService ID's without registration", () => {
-        const container = new ProxyDI();
+        const container = new ProxyDiContainer();
 
         const service1 = container.resolve<FirstService>('FirstService');
         const service2 = container.resolve<SecondService>('second');
@@ -30,7 +29,7 @@ describe('@autoInjectableService()', () => {
             @autoInjectableService('second')
             class SecondAgain {}
         }).toThrowError(
-            `ProxyDI autoInjectableService already has service ID: second`
+            `ProxyDi autoInjectableService already has service ID: second`
         );
     });
 

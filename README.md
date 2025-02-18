@@ -1,25 +1,29 @@
-# ProxyDI
+# ProxyDi
 
 [![Coverage Status](https://coveralls.io/repos/github/proxy-di/proxydi/badge.svg?branch=main)](https://coveralls.io/github/proxy-di/proxydi?branch=main)
 
-A typed DI container that resolves circular dependencies via Proxy.
+A typed hierarchical DI container that resolves circular dependencies via Proxy.
 
 Core notes:
 
 - Uses Stage 3 decorators (supported in TypeScript 5.x and babel-plugin-proposal-decorators)
 - Automatically resolves circular dependencies
+- Resolves dependencies in context of particular container
 - Matches services by unique identifiers, class or property names
-- Currently in active development
+- Currently in active development, so API could changes till version 0.1.0
 
 # Quick start
+
+Install `proxydi` package in your JavaScript or TypeScript project:
 
 ```shell
 npm i proxydi
 ```
 
-If you are using TypeScript be sure that your tsconfig.json set exactly `false` value for `experimentalDecorators`. This could be not obvious, but this setup turns on support of Stage 3 decorators.
+If you are using TypeScript be sure that `experimentalDecorators` has exactly `false` value in your `tsconfig.json`. This could be not obvious, but this turns on support of Stage 3 decorators:
 
 ```jsonc
+// tsconfig.json
 {
     "compilerOptions": {
         // ...
@@ -29,43 +33,51 @@ If you are using TypeScript be sure that your tsconfig.json set exactly `false` 
 }
 ```
 
-1. @inject your dependencies
+The pipeline of using ProxyDi has 3 stages:
+
+1. Using @inject decorator you need to define what dependencies should be resolved by ProxyDi .
 
 ```typescript
 import { inject } from 'proxydi';
 
-interface Personality {
+interface Character {
     greet(): string;
 }
 
-@autoInjectableServivce()
-class Agent {
-    @inject() personality: Personality;
+@autoInjectableService()
+class Actor {
+    @inject() role: Character;
+
+    greet = () => this.role.greet();
 }
 ```
 
-2. Create, fill ProxyDI container
+In this example we ask ProxyDi to resolve `role` dependency for actor.
+
+2. Next, you should setup ProxyDi container and fill it by dependencies.
 
 ```typescript
-import { ProxyDI } from 'proxydi';
+import { ProxyDiContainer } from 'proxydi';
 
-class Jarvis implements Personality {
-    greet: () => 'Hello, sir!';
+class Agent007 implements Character {
+    greet = () => 'Bond... James Bond';
 }
 
-const container = new ProxyDI();
-container.createService('personality', Jarvis);
+const container = new ProxyDiContainer();
+container.createService('role', Agent007);
 ```
 
-3. Use dependencies
+In this example we setup ProxyDi container to allow atory play role of agent 007.
+
+3. At last stage you takes dependencies from ProxyDi container and just use them.
 
 ```typescript
-const agent = container.resolveAutoInjectable(Agent);
-console.log(agent.personality.greet());
+const actor = container.resolveAutoInjectable(Actor);
+console.log(actor.greet());
 ```
 
 ```shell
-> Hello, sir!
+> Bond... James Bond
 ```
 
 To be continued...

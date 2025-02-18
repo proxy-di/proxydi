@@ -1,4 +1,4 @@
-export { ProxyDiContainer as ProxyDI } from './ProxyDI';
+export { ProxyDiContainer } from './ProxyDiContainer';
 export { inject } from './inject';
 export { autoInjectableService } from './autoInjectableService';
 export {

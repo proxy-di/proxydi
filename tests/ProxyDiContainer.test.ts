@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { inject, ProxyDI } from '../src/index';
-import { TestableProxyDI } from './TestableProxyDI.mock';
+import { inject, ProxyDiContainer, autoInjectableService } from '../src/index';
+import { TestableProxyDi } from './TestableProxyDi.mock';
 import { SERVICE_ID } from '../src/types';
-import { autoInjectableService } from '../src/autoInjectableService';
 
 class FirstService {
     constructor(public readonly name: string = "I'm first!") {}
@@ -19,16 +18,16 @@ class AnyService {
     name = 'any service';
 }
 
-describe('ProxyDI', () => {
+describe('ProxyDi', () => {
     describe('id', () => {
         it('has some numeric id', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             expect(container.id).is.not.NaN;
         });
 
         it('different containers has different id', () => {
-            const container1 = new ProxyDI();
-            const container2 = new ProxyDI();
+            const container1 = new ProxyDiContainer();
+            const container2 = new ProxyDiContainer();
             const container3 = container1.createChildContainer();
             expect(container1.id).is.not.equals(container2.id);
             expect(container1.id).is.not.equals(container3.id);
@@ -39,32 +38,32 @@ describe('ProxyDI', () => {
         const serviceId = 'known';
 
         it('any service in uknown without registration', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             expect(container.isKnown(serviceId)).is.false;
         });
 
         it('@autoInjectableService always known', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             expect(container.isKnown('any')).is.true;
         });
 
         it('class is known after resigtation', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             container.createService(serviceId, FirstService);
 
             expect(container.isKnown(serviceId)).is.true;
         });
 
         it("Can't register class with the same service ID", () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             container.createService(serviceId, FirstService);
             expect(() =>
                 container.createService(serviceId, FirstService)
-            ).toThrowError('ProxyDI already has registered class');
+            ).toThrowError('ProxyDi already has registered class');
         });
 
         it('Can register class with the same service ID', () => {
-            const container = new ProxyDI({ allowRewriteServices: true });
+            const container = new ProxyDiContainer({ allowRewriteServices: true });
             container.createService(serviceId, FirstService);
             container.createService(serviceId, FirstService);
 
@@ -72,7 +71,7 @@ describe('ProxyDI', () => {
         });
 
         it('removed class is unknown', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             container.createService(serviceId, FirstService);
             container.removeService(serviceId);
 
@@ -80,7 +79,7 @@ describe('ProxyDI', () => {
         });
 
         it('instance is known after registration', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const instance = new FirstService();
             container.registerService(serviceId, instance);
 
@@ -88,17 +87,17 @@ describe('ProxyDI', () => {
         });
 
         it("Can't register instance with the same service ID", () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const instance = new FirstService();
             container.registerService(serviceId, instance);
 
             expect(() =>
                 container.registerService(serviceId, instance)
-            ).toThrowError('ProxyDI already has registered instance');
+            ).toThrowError('ProxyDi already has registered instance');
         });
 
         it('Can register instance with the same service ID', () => {
-            const container = new ProxyDI({ allowRewriteServices: true });
+            const container = new ProxyDiContainer({ allowRewriteServices: true });
             const instance = new FirstService();
             container.registerService(serviceId, instance);
             container.registerService(serviceId, instance);
@@ -107,7 +106,7 @@ describe('ProxyDI', () => {
         });
 
         it('unknown removed instance', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const instance = new FirstService();
             container.registerService(serviceId, instance);
             container.removeService(serviceId);
@@ -116,14 +115,14 @@ describe('ProxyDI', () => {
         });
 
         it('by default instance should be an object', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             expect(() =>
                 container.registerService(serviceId, 'any value')
             ).toThrowError("Can't register as instance");
         });
 
         it('but any value could be registered as instance', () => {
-            const container = new ProxyDI({
+            const container = new ProxyDiContainer({
                 allowRegisterAnythingAsInstance: true,
             });
             container.registerService(serviceId, 'any value');
@@ -132,7 +131,7 @@ describe('ProxyDI', () => {
         });
 
         it('known in parent', () => {
-            const parent = new ProxyDI();
+            const parent = new ProxyDiContainer();
             parent.createService(serviceId, FirstService);
 
             const child = parent.createChildContainer();
@@ -144,22 +143,22 @@ describe('ProxyDI', () => {
         const serviceId = 'someService';
 
         it("Can't resolve unknown service", () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
 
             expect(() => container.resolve(serviceId)).toThrowError(
-                `Can't resolve unknown ProxyDI-service: ${serviceId}`
+                `Can't resolve unknown ProxyDi-service: ${serviceId}`
             );
         });
 
         it('resolve class', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             container.createService(serviceId, FirstService);
 
             expect(container.resolve(serviceId)).is.instanceOf(FirstService);
         });
 
         it('resolve instance', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
 
             container.createService('second', SecondService);
             const instance = new FirstService();
@@ -175,7 +174,7 @@ describe('ProxyDI', () => {
 
     describe('resolve() @inject', () => {
         it('should resolve dependency after class registration', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
 
             container.createService('first', FirstService);
             container.createService('second', SecondService);
@@ -188,7 +187,7 @@ describe('ProxyDI', () => {
         });
 
         it('should resolve dependency after instance registration', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
 
             container.createService('first', FirstService);
 
@@ -202,7 +201,7 @@ describe('ProxyDI', () => {
         });
 
         it('external call of injectDependencies()', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
 
             container.createService('first', FirstService);
 
@@ -218,7 +217,7 @@ describe('ProxyDI', () => {
 
     describe('destroy', () => {
         it('should forget all instances', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
 
             container.registerService('first', new FirstService());
             expect(container.isKnown('first')).is.true;
@@ -229,7 +228,7 @@ describe('ProxyDI', () => {
         });
 
         it('should forget all classes', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
 
             container.createService('first', FirstService);
             expect(container.isKnown('first')).is.true;
@@ -240,7 +239,7 @@ describe('ProxyDI', () => {
         });
 
         it('should forget all children', () => {
-            const container = new TestableProxyDI();
+            const container = new TestableProxyDi();
             const child = container.createChildContainer();
 
             expect(container.getChildren()[child.id]).is.equals(child);
@@ -251,7 +250,7 @@ describe('ProxyDI', () => {
         });
 
         it('should be removed in parent', () => {
-            const container = new TestableProxyDI();
+            const container = new TestableProxyDi();
             const child = container.createChildContainer();
 
             expect(container.getChildren()[child.id]).is.equals(child);
@@ -264,24 +263,24 @@ describe('ProxyDI', () => {
 
     describe('hierarchy', () => {
         it('should have parent', () => {
-            const parent = new ProxyDI();
+            const parent = new ProxyDiContainer();
             const child = parent.createChildContainer();
 
             expect(child.parent).is.equals(parent);
         });
 
         it('do not allow child with duplicated ID', () => {
-            const parent = new TestableProxyDI();
+            const parent = new TestableProxyDi();
             const child = parent.createChildContainer();
 
             expect(function () {
                 parent.desreaseIdCounter();
                 parent.createChildContainer();
-            }).toThrowError('ProxyDI already has child with id');
+            }).toThrowError('ProxyDi already has child with id');
         });
 
         it('should clear parent after destroy', () => {
-            const parent = new ProxyDI();
+            const parent = new ProxyDiContainer();
             const child = parent.createChildContainer();
 
             child.destroy();
@@ -290,7 +289,7 @@ describe('ProxyDI', () => {
         });
 
         it('resolve dependency from parent via child', () => {
-            const parent = new ProxyDI();
+            const parent = new ProxyDiContainer();
             parent.createService('first', FirstService);
 
             const child = parent.createChildContainer();
@@ -300,7 +299,7 @@ describe('ProxyDI', () => {
         });
 
         it('removeInstance() clear dependencies', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             container.createService('first', FirstService);
 
             const service2 = new SecondService();
@@ -314,7 +313,7 @@ describe('ProxyDI', () => {
         });
 
         it('removeInstance() removes any value', () => {
-            const container = new ProxyDI({
+            const container = new ProxyDiContainer({
                 allowRegisterAnythingAsInstance: true,
             });
             container.registerService('literal', 'any value');
@@ -330,11 +329,11 @@ describe('ProxyDI', () => {
         });
 
         it('resolve parent dependencies, but not vise versa', () => {
-            const parent = new ProxyDI();
+            const parent = new ProxyDiContainer();
             parent.createService('first', FirstService);
             const service1Parent = parent.resolve<FirstService>('first');
             expect(() => service1Parent.second.name).toThrowError(
-                'Unknown ProxyDI-service'
+                'Unknown ProxyDi-service'
             );
 
             const child = parent.createChildContainer();
@@ -348,7 +347,7 @@ describe('ProxyDI', () => {
         });
 
         it("resolve() takes dependencies from it's container", () => {
-            const parent = new ProxyDI();
+            const parent = new ProxyDiContainer();
             parent.createService('second', SecondService);
 
             const child1 = parent.createChildContainer();
@@ -367,14 +366,14 @@ describe('ProxyDI', () => {
 
     describe('resolve by class', () => {
         it('should resolve by auto injectable class', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
             const anyService = container.resolveAutoInjectable(AnyService);
 
             expect(anyService.name).equals('any service');
         });
 
         it('should be auto injectable', () => {
-            const container = new ProxyDI();
+            const container = new ProxyDiContainer();
 
             expect(() =>
                 container.resolveAutoInjectable(FirstService)
