@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { inject, ProxyDiContainer, autoInjectable } from '../src/index';
-import { TestableProxyDi } from './TestableProxyDi.mock';
+import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
 import { DEPENDENCY_ID } from '../src/types';
 
 class First {
@@ -253,7 +253,7 @@ describe('ProxyDi', () => {
         });
 
         it('should forget all children', () => {
-            const container = new TestableProxyDi();
+            const container = new TestableProxyDiContainer();
             const child = container.createChildContainer();
 
             expect(container.getChildren()[child.id]).is.equals(child);
@@ -264,7 +264,7 @@ describe('ProxyDi', () => {
         });
 
         it('should be removed in parent', () => {
-            const container = new TestableProxyDi();
+            const container = new TestableProxyDiContainer();
             const child = container.createChildContainer();
 
             expect(container.getChildren()[child.id]).is.equals(child);
@@ -284,7 +284,7 @@ describe('ProxyDi', () => {
         });
 
         it('do not allow child with duplicated ID', () => {
-            const parent = new TestableProxyDi();
+            const parent = new TestableProxyDiContainer();
             const child = parent.createChildContainer();
 
             expect(function () {
