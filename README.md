@@ -9,7 +9,7 @@ Core features:
 - Uses Stage 3 decorators, supported in TypeScript 5.x ([examples repository](https://github.com/proxy-di/node-ts-examples)) and Babel via babel-plugin-proposal-decorators ([examples repository](https://github.com/proxy-di/node-babel-examples))
 - Automatically resolves circular dependencies
 - Resolves dependencies in the context of a particular container
-- Matches services by unique identifiers, class, or property names
+- Matches dependencies by unique identifiers or automatically using class names and property names
 - Currently in active development, API may change until version 0.1.0
 
 # Quick start
@@ -20,6 +20,8 @@ Install the `proxydi` package in your JavaScript or TypeScript project:
 npm i proxydi
 ```
 
+## TypeScript set up
+
 If you are using TypeScript, ensure that `experimentalDecorators` is set to `false` in your `tsconfig.json`. This enables support for Stage 3 decorators:
 
 ```jsonc
@@ -28,10 +30,30 @@ If you are using TypeScript, ensure that `experimentalDecorators` is set to `fal
     "compilerOptions": {
         // ...
         "experimentalDecorators": false,
+        "strictPropertyInitialization": false
     },
     //...
 }
 ```
+
+Changing `strictPropertyInitialization` is not necessary, but if you leave it by default you should slightly change all examples. More about this later.
+
+## Babel set
+
+For Babel's projects, be sure that @babel/plugin-proposal-decorators is set up exactly as follows:
+
+```jsonc
+// .babelrc
+{
+    // ...
+    "plugins": [
+        // other plugins
+        ["@babel/plugin-proposal-decorators", { "version": "2023-11" }],
+    ],
+}
+```
+
+## Usage
 
 The process of using ProxyDi consists of 3 stages:
 
