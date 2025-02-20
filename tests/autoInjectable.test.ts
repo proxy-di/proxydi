@@ -17,14 +17,14 @@ describe('@autoInjectableService()', () => {
     it("should resolve dependency just by @autoInjectable ID's without registration", () => {
         const container = new ProxyDiContainer();
 
-        const service1 = container.resolve<First>('First');
-        const service2 = container.resolve<Second>('second');
+        const dependency1 = container.resolve<First>('First');
+        const dependency2 = container.resolve<Second>('second');
 
-        expect(service1.second.name).is.equals("I'm second!");
-        expect(service2.first.name).is.equals("I'm first!");
+        expect(dependency1.second.name).is.equals("I'm second!");
+        expect(dependency2.first.name).is.equals("I'm first!");
     });
 
-    it('should throw error for service ID duplicate ', () => {
+    it('should throw error for dependency ID duplicate ', () => {
         expect(() => {
             @autoInjectable('second')
             class SecondAgain {}
