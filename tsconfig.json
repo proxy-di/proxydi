@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "ES2016",
         "module": "ESNext",
-        "lib": ["ES2016", "DOM"],
+        "lib": ["ES2017", "DOM"],
         "declaration": true,
         "declarationDir": "dist",
         "strict": true,

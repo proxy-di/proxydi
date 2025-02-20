@@ -1,58 +1,60 @@
 import { describe, it, expect } from 'vitest';
-import { inject, Inject } from '../src/index';
-import { INJECTS } from '../src/types';
+import { inject } from '../src/index';
+import { Injection, INJECTIONS } from '../src/types';
 
-class FreeService {
-    constructor(public readonly name = 'Free service') {}
+class Empty {
+    constructor(public readonly name = 'Free dependency') {}
 }
-class DependentService {
-    @inject() freeService: FreeService;
-    @inject('freeService') anotherFreeService: FreeService;
+class Dependent {
+    @inject() freeDependency: Empty;
+    @inject('freeDependency') anotherFreeDependency: Empty;
 }
 
 describe('inject', () => {
     it('should add INJECTS', () => {
-        const service = new DependentService() as any;
-        expect(service[INJECTS]).is.not.undefined;
-        expect(service[INJECTS].length).equal(2);
+        const dependencyInstance = new Dependent() as any;
+        expect(dependencyInstance[INJECTIONS]).is.not.undefined;
+        expect(Object.values(dependencyInstance[INJECTIONS]).length).equal(2);
     });
 
     it("@inject itself doesn't inject anything", () => {
-        const service = new DependentService() as any;
-        expect(service.freeService).is.undefined;
-        expect(service.anotherFreeService).is.undefined;
+        const dependencyInstance2 = new Dependent() as any;
+        expect(dependencyInstance2.freeDependency).is.undefined;
+        expect(dependencyInstance2.anotherFreeDependency).is.undefined;
     });
 
-    it('Service ID could be taken from property name', () => {
-        const service = new DependentService() as any;
+    it('Dependency ID could be taken from property name', () => {
+        const depInstance = new Dependent() as any;
 
-        const inject = service[INJECTS][0] as Inject;
-        expect(inject.property).equal('freeService');
-        expect(inject.serviceId).equal('freeService');
+        const inject = Object.values(depInstance[INJECTIONS])[0] as Injection;
+        expect(inject.property).equal('freeDependency');
+        expect(inject.dependencyId).equal('freeDependency');
     });
 
     it('Service ID could be set directly', () => {
-        const service = new DependentService() as any;
+        const depInstance = new Dependent() as any;
 
-        const inject2 = service[INJECTS][1] as Inject;
-        expect(inject2.property).equal('anotherFreeService');
-        expect(inject2.serviceId).equal('freeService');
+        const inject2 = Object.values(depInstance[INJECTIONS])[1] as Injection;
+        expect(inject2.property).equal('anotherFreeDependency');
+        expect(inject2.dependencyId).equal('freeDependency');
     });
 
     it('Injected data should allow set value', () => {
-        const service = new DependentService() as any;
+        const dependent = new Dependent() as any;
 
-        const inject = service[INJECTS][0] as Inject;
-        inject.set(service, new FreeService());
-        expect(service.freeService).is.not.undefined;
-        expect(service.freeService.name).equal('Free service');
-        expect(service.freeService instanceof FreeService).is.true;
+        const inject = Object.values(dependent[INJECTIONS])[0] as Injection;
+        inject.set(dependent, new Empty());
+        expect(dependent.freeDependency).is.not.undefined;
+        expect(dependent.freeDependency.name).equal('Free dependency');
+        expect(dependent.freeDependency instanceof Empty).is.true;
 
-        const inject2 = service[INJECTS][1] as Inject;
-        inject2.set(service, new FreeService('Another free service'));
-        expect(service.anotherFreeService).is.not.undefined;
-        expect(service.anotherFreeService.name).equal('Another free service');
-        expect(service.anotherFreeService instanceof FreeService).is.true;
+        const inject2 = Object.values(dependent[INJECTIONS])[1] as Injection;
+        inject2.set(dependent, new Empty('Another free dependency'));
+        expect(dependent.anotherFreeDependency).is.not.undefined;
+        expect(dependent.anotherFreeDependency.name).equal(
+            'Another free dependency'
+        );
+        expect(dependent.anotherFreeDependency instanceof Empty).is.true;
     });
 
     it('should decorate fields', () => {

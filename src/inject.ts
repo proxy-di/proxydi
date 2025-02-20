@@ -1,22 +1,30 @@
-import { Inject, INJECTS, ServiceId } from './types';
+import { Injection, INJECTIONS, DependencyId } from './types';
 
-export const inject = (serviceId?: ServiceId) => {
+/**
+ * Registers an injection for dependency injection.
+ *
+ * @param dependencyId - Optional dependecy identifier. If omitted, the property name is used.
+ * @returns A decorator function for class fields.
+ *
+ * The decorated field will receive its dependency from the same container as the injection owner.
+ */
+export const inject = (dependencyId?: DependencyId) => {
     return function (_value: unknown, context: ClassFieldDecoratorContext) {
         if (context?.kind === 'field') {
-            const name = serviceId ? serviceId : context.name;
+            const id = dependencyId ? dependencyId : context.name;
 
-            const inject: Inject = {
+            const injection: Injection = {
                 property: context.name,
-                serviceId: name,
+                dependencyId: id,
                 set: context.access.set,
             };
 
             context.addInitializer(function (this: any) {
-                if (!this[INJECTS]) {
-                    this[INJECTS] = [];
+                if (!this[INJECTIONS]) {
+                    this[INJECTIONS] = {};
                 }
 
-                this[INJECTS].push(inject);
+                this[INJECTIONS][injection.property] = injection;
             });
         } else {
             throw new Error('@inject decorator should decorate fields');

@@ -1,7 +1,7 @@
 {
     "name": "proxydi",
-    "version": "0.0.4",
-    "description": "A typed DI container that resolves circular dependencies via Proxy",
+    "version": "0.0.5",
+    "description": "A typed hierarchical DI container that resolves circular dependencies via Proxy",
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.js",
@@ -17,6 +17,7 @@
         "build": "rollup -c",
         "dev": "rollup -c -w",
         "test": "vitest",
+        "test:ci": "vitest run",
         "lint": "eslint src --ext .ts",
         "format": "prettier --write \"src/**/*.ts\"",
         "prepare": "npm run build",
