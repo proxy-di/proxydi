@@ -6,7 +6,7 @@ A typed hierarchical DI container that resolves circular dependencies via Proxy.
 
 Core features:
 
-- Uses Stage 3 decorators (supported in TypeScript 5.x and babel-plugin-proposal-decorators)
+- Uses Stage 3 decorators, supported in TypeScript 5.x ([examples repository](https://github.com/proxy-di/node-ts-examples)) and Babel via babel-plugin-proposal-decorators ([examples repository](https://github.com/proxy-di/node-babel-examples))
 - Automatically resolves circular dependencies
 - Resolves dependencies in the context of a particular container
 - Matches services by unique identifiers, class, or property names
@@ -65,7 +65,7 @@ container.newDependency(Actor, 'Actor');
 
 ```typescript
 const actor = container.resolve<Actor>('Actor');
-console.log(actor.greet());
+console.log(actor.play());
 ```
 
 And the result is:
