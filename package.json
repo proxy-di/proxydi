@@ -17,6 +17,7 @@
         "build": "rollup -c",
         "dev": "rollup -c -w",
         "test": "vitest",
+        "test:ci": "vitest run",
         "lint": "eslint src --ext .ts",
         "format": "prettier --write \"src/**/*.ts\"",
         "prepare": "npm run build",
