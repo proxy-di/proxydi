@@ -1,6 +1,6 @@
 # ProxyDi
 
-[![Coverage Status](https://coveralls.io/repos/github/proxy-di/proxydi/badge.svg?branch=main)](https://coveralls.io/github/proxy-di/proxydi?branch=main&v=0.0.5)
+[![Coverage Status](https://coveralls.io/repos/github/proxy-di/proxydi/badge.png)](https://coveralls.io/github/proxy-di/proxydi)
 
 A typed hierarchical DI container that resolves circular dependencies via Proxy.
 
