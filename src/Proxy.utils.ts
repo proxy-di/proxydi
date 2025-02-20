@@ -1,7 +1,7 @@
 import {
     IS_INJECTION_PROXY,
     InjectionProxy as IInjectionProxy,
-    ContainerizedServiceInstance,
+    ContainerizedDependency,
     INJECTION_OWNER,
     Injection,
     IProxyDiContainer,
@@ -11,13 +11,10 @@ import {
 
 class InjectionProxy implements IInjectionProxy {
     [IS_INJECTION_PROXY]: true = true;
-    readonly [INJECTION_OWNER]: ContainerizedServiceInstance;
+    readonly [INJECTION_OWNER]: ContainerizedDependency;
     readonly [PROXYDY_CONTAINER]: IProxyDiContainer;
 
-    constructor(
-        onwer: ContainerizedServiceInstance,
-        container: IProxyDiContainer
-    ) {
+    constructor(onwer: ContainerizedDependency, container: IProxyDiContainer) {
         this[INJECTION_OWNER] = onwer;
         this[PROXYDY_CONTAINER] = container;
     }
@@ -25,15 +22,15 @@ class InjectionProxy implements IInjectionProxy {
 
 export const makeInjectionProxy = <T>(
     inject: Injection,
-    injectionOwner: ContainerizedServiceInstance,
+    injectionOwner: ContainerizedDependency,
     container: IProxyDiContainer
 ): T => {
-    function getService() {
-        if (container.isKnown(inject.serviceId)) {
-            return container.resolve(inject.serviceId) as any;
+    function getDependency() {
+        if (container.isKnown(inject.dependencyId)) {
+            return container.resolve(inject.dependencyId) as any;
         } else {
             throw new Error(
-                `Unknown ProxyDi-service: ${String(inject.serviceId)}`
+                `Unknown dependency: ${String(inject.dependencyId)}`
             );
         }
     }
@@ -43,26 +40,26 @@ export const makeInjectionProxy = <T>(
                 return (target as any)[prop];
             }
 
-            const service = getService();
-            return Reflect.get(service, prop, receiver);
+            const dependency = getDependency();
+            return Reflect.get(dependency, prop, receiver);
         },
 
         set: function (target: InjectionProxy, prop: string, value: any) {
-            const service = getService();
-            return Reflect.set(service, prop, value);
+            const dependency = getDependency();
+            return Reflect.set(dependency, prop, value);
         },
 
         has: function (target: InjectionProxy, prop: string) {
-            const service = getService();
-            return Reflect.has(service, prop);
+            const dependency = getDependency();
+            return Reflect.has(dependency, prop);
         },
     }) as T;
 };
 
-export function makeInstanceProxy(instance: any) {
+export function makeDependencyProxy(dependency: any) {
     const injectionValues: Record<string | symbol, any> = {};
 
-    return new Proxy(instance, {
+    return new Proxy(dependency, {
         get: function (target, prop, receiver) {
             if (prop === IS_INSTANCE_PROXY) {
                 return true;

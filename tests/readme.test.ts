@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { autoInjectableService, inject, ProxyDiContainer } from '../src';
+import { autoInjectable, inject, ProxyDiContainer } from '../src';
 
 describe('README', () => {
     it('Quick start', () => {
@@ -7,7 +7,7 @@ describe('README', () => {
             greet(): string;
         }
 
-        @autoInjectableService()
+        @autoInjectable()
         class Actor {
             @inject() role: Character;
 
@@ -19,7 +19,7 @@ describe('README', () => {
         }
 
         const container = new ProxyDiContainer();
-        container.createService('role', Agent007);
+        container.newDependency(Agent007, 'role');
 
         const actor = container.resolveAutoInjectable(Actor);
 

@@ -1,11 +1,11 @@
-import { ProxyDiSettings } from './types';
+import { ContainerSettings } from './types';
 
-export const DEFAULT_SETTINGS: Required<ProxyDiSettings> = {
-    allowRegisterAnythingAsInstance: false,
-    allowRewriteServices: false,
+export const DEFAULT_SETTINGS: Required<ContainerSettings> = {
+    allowRegisterAnything: false,
+    allowRewriteDependencies: false,
 };
 
-export const TESTS_SETTINGS: Required<ProxyDiSettings> = {
-    allowRegisterAnythingAsInstance: false,
-    allowRewriteServices: true,
+export const TESTS_SETTINGS: Required<ContainerSettings> = {
+    allowRegisterAnything: false,
+    allowRewriteDependencies: true,
 };

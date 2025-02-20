@@ -28,7 +28,7 @@ describe('inject', () => {
 
         const inject = Object.values(service[INJECTIONS])[0] as Injection;
         expect(inject.property).equal('freeService');
-        expect(inject.serviceId).equal('freeService');
+        expect(inject.dependencyId).equal('freeService');
     });
 
     it('Service ID could be set directly', () => {
@@ -36,7 +36,7 @@ describe('inject', () => {
 
         const inject2 = Object.values(service[INJECTIONS])[1] as Injection;
         expect(inject2.property).equal('anotherFreeService');
-        expect(inject2.serviceId).equal('freeService');
+        expect(inject2.dependencyId).equal('freeService');
     });
 
     it('Injected data should allow set value', () => {

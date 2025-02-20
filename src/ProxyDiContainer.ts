@@ -1,17 +1,21 @@
 import {
     INJECTIONS,
-    SERVICE_ID,
+    DEPENDENCY_ID,
     IProxyDiContainer as IProxyDiContainer,
-    ContainerizedServiceInstance,
-    ServiceInstanced,
-    ServiceClass,
+    ContainerizedDependency as ContainerizedDependency,
+    Instanced,
+    DependencyClass,
     PROXYDY_CONTAINER,
     Injections,
 } from './types';
-import { autoInjectableServices } from './autoInjectableService';
-import { Injection, ProxyDiSettings, ServiceId } from './types';
+import { autoInjectableClasses } from './autoInjectable';
+import {
+    Injection,
+    ContainerSettings as ContainerSettings,
+    DependencyId,
+} from './types';
 import { DEFAULT_SETTINGS } from './presets';
-import { makeInjectionProxy, makeInstanceProxy } from './Proxy.utils';
+import { makeInjectionProxy, makeDependencyProxy } from './Proxy.utils';
 
 export class ProxyDiContainer implements IProxyDiContainer {
     private static idCounter = 0;
@@ -21,18 +25,17 @@ export class ProxyDiContainer implements IProxyDiContainer {
     private children: Record<number, IProxyDiContainer> = {};
 
     /**
-     * Holds instances of services registered in particular this container
+     * Holds dependencies of this particular container
      */
-    private serviceInstances: Record<ServiceId, ContainerizedServiceInstance> =
-        {};
-    private parentInstanceProxies: Record<
-        ServiceId,
-        ContainerizedServiceInstance
+    private dependencies: Record<DependencyId, ContainerizedDependency> = {};
+    private parentDependencyProxies: Record<
+        DependencyId,
+        ContainerizedDependency
     > = {};
 
-    private settings: Required<ProxyDiSettings>;
+    private settings: Required<ContainerSettings>;
 
-    constructor(settings?: ProxyDiSettings, parent?: ProxyDiContainer) {
+    constructor(settings?: ContainerSettings, parent?: ProxyDiContainer) {
         this.id = ProxyDiContainer.idCounter++;
 
         if (parent) {
@@ -43,116 +46,125 @@ export class ProxyDiContainer implements IProxyDiContainer {
         this.settings = { ...DEFAULT_SETTINGS, ...settings };
     }
 
-    registerService<T>(serviceId: ServiceId, instance: ServiceInstanced<T>) {
-        if (this.serviceInstances[serviceId]) {
-            if (!this.settings.allowRewriteServices) {
+    registerDependency<T>(
+        dependency: Instanced<T>,
+        dependencyId: DependencyId
+    ) {
+        if (this.dependencies[dependencyId]) {
+            if (!this.settings.allowRewriteDependencies) {
                 throw new Error(
-                    `ProxyDi already has registered instance for ${String(serviceId)}`
+                    `ProxyDi already has dependency for ${String(dependencyId)}`
                 );
             }
         }
 
         if (
-            !(typeof instance === 'object') &&
-            !this.settings.allowRegisterAnythingAsInstance
+            !(typeof dependency === 'object') &&
+            !this.settings.allowRegisterAnything
         ) {
             throw new Error(
-                `Can't register as instance (allowRegisterAnythingAsInstance is off for this ProxyDi contatiner): ${instance}`
+                `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${dependency}`
             );
         }
 
-        this.registerInstanceImplementation(serviceId, instance);
+        this.registerDependencyImpl(dependencyId, dependency);
     }
 
-    private registerInstanceImplementation(
-        serviceId: ServiceId,
-        instance: any
+    newDependency<T>(
+        DependencyClass: DependencyClass<T>,
+        dependencyId: DependencyId
     ) {
-        this.injectDependencies(instance);
-
-        if (typeof instance === 'object') {
-            (instance as any)[SERVICE_ID] = serviceId;
-        }
-
-        this.serviceInstances[serviceId] = instance;
-    }
-
-    createService<T>(serviceId: ServiceId, ServiceClass: ServiceClass<T>) {
-        if (this.serviceInstances[serviceId]) {
-            if (!this.settings.allowRewriteServices) {
+        if (this.dependencies[dependencyId]) {
+            if (!this.settings.allowRewriteDependencies) {
                 throw new Error(
-                    `ProxyDi already has registered class for ${String(serviceId)}`
+                    `ProxyDi already has dependency for ${String(dependencyId)}`
                 );
             }
         }
 
-        const newInstance: T = new ServiceClass();
-        this.registerInstanceImplementation(serviceId, newInstance);
+        const dependency: T = new DependencyClass();
+        this.registerDependencyImpl(dependencyId, dependency);
     }
 
-    isKnown(serviceId: ServiceId): boolean {
+    private registerDependencyImpl(
+        dependencyId: DependencyId,
+        dependency: any
+    ) {
+        this.injectDependenciesTo(dependency);
+
+        if (typeof dependency === 'object') {
+            (dependency as any)[DEPENDENCY_ID] = dependencyId;
+        }
+
+        this.dependencies[dependencyId] = dependency;
+    }
+
+    isKnown(dependencyId: DependencyId): boolean {
         return !!(
-            this.parentInstanceProxies[serviceId] ||
-            this.serviceInstances[serviceId] ||
-            (this.parent && this.parent.isKnown(serviceId)) ||
-            autoInjectableServices[serviceId]
+            this.parentDependencyProxies[dependencyId] ||
+            this.dependencies[dependencyId] ||
+            (this.parent && this.parent.isKnown(dependencyId)) ||
+            autoInjectableClasses[dependencyId]
         );
     }
 
     resolveAutoInjectable<T extends new () => any>(
-        service: T
+        SomeClass: T
     ): InstanceType<T> {
-        for (const [serviceId, ServiceClass] of Object.entries(
-            autoInjectableServices
+        for (const [dependencyId, DependencyClass] of Object.entries(
+            autoInjectableClasses
         )) {
-            if (ServiceClass === service) {
-                return this.resolve(serviceId);
+            if (DependencyClass === SomeClass) {
+                return this.resolve(dependencyId);
             }
         }
 
-        throw new Error(`Service is not auto injectable: ${service.name}`);
+        throw new Error(`Class is not auto injectable: ${SomeClass.name}`);
     }
 
-    resolve<T>(serviceId: ServiceId): T & ContainerizedServiceInstance {
-        if (!this.isKnown(serviceId)) {
+    resolve<T>(dependencyId: DependencyId): T & ContainerizedDependency {
+        if (!this.isKnown(dependencyId)) {
             throw new Error(
-                `Can't resolve unknown ProxyDi-service: ${String(serviceId)}`
+                `Can't resolve unknown dependency: ${String(dependencyId)}`
             );
         }
 
-        const proxy = this.parentInstanceProxies[serviceId];
+        const proxy = this.parentDependencyProxies[dependencyId];
         if (proxy) {
-            return proxy as T & ContainerizedServiceInstance;
+            return proxy as T & ContainerizedDependency;
         }
 
-        const instance = this.findInstance<T>(serviceId);
-        if (instance) {
+        const dependency = this.findDependency<T>(dependencyId);
+        if (dependency) {
             if (
-                instance[PROXYDY_CONTAINER] !== this &&
-                typeof instance === 'object'
+                dependency[PROXYDY_CONTAINER] !== this &&
+                typeof dependency === 'object'
             ) {
-                const proxy = makeInstanceProxy(instance);
-                this.injectDependencies(proxy);
-                this.parentInstanceProxies[serviceId] = proxy;
-                return proxy as any as T & ContainerizedServiceInstance;
+                const proxy = makeDependencyProxy(dependency);
+                this.injectDependenciesTo(proxy);
+                this.parentDependencyProxies[dependencyId] = proxy;
+                return proxy as any as T & ContainerizedDependency;
             }
-            return instance;
+            return dependency;
         }
 
-        const AutoInjectableService = autoInjectableServices[serviceId];
-
-        const newInstance = new AutoInjectableService();
-        this.registerInstanceImplementation(serviceId, newInstance);
-        this.serviceInstances[serviceId] = newInstance;
-        return newInstance;
+        const AutoInjectableClass = autoInjectableClasses[dependencyId];
+        const autoDependency = new AutoInjectableClass();
+        this.registerDependencyImpl(dependencyId, autoDependency);
+        this.dependencies[dependencyId] = autoDependency;
+        return autoDependency;
     }
 
-    injectDependencies(injectionsOwner: any) {
-        const serviceInjects: Injections = injectionsOwner[INJECTIONS] || {};
+    injectDependenciesTo(injectionsOwner: any) {
+        const dependencyInjects: Injections = injectionsOwner[INJECTIONS] || {};
 
-        Object.values(serviceInjects).forEach((inject: Injection) => {
-            const value = makeInjectionProxy(inject, injectionsOwner, this);
-            inject.set(injectionsOwner, value);
+        Object.values(dependencyInjects).forEach((inject: Injection) => {
+            const dependencyProxy = makeInjectionProxy(
+                inject,
+                injectionsOwner,
+                this
+            );
+            inject.set(injectionsOwner, dependencyProxy);
         });
     }
 
@@ -160,29 +172,31 @@ export class ProxyDiContainer implements IProxyDiContainer {
         return new ProxyDiContainer(this.settings, this);
     }
 
-    removeService(serviceId: ServiceId | ContainerizedServiceInstance) {
-        const id = isInstance(serviceId) ? serviceId[SERVICE_ID] : serviceId;
-        const instance = this.serviceInstances[id];
-        if (instance) {
-            const serviceInjects: Injections = instance[INJECTIONS]
-                ? instance[INJECTIONS]
+    removeDependency(dependencyOrId: DependencyId | ContainerizedDependency) {
+        const id = isDependency(dependencyOrId)
+            ? dependencyOrId[DEPENDENCY_ID]
+            : dependencyOrId;
+        const dependency = this.dependencies[id];
+        if (dependency) {
+            const dependencyInjects: Injections = dependency[INJECTIONS]
+                ? dependency[INJECTIONS]
                 : {};
-            Object.values(serviceInjects).forEach((inject: Injection) => {
-                inject.set(instance, undefined);
+            Object.values(dependencyInjects).forEach((inject: Injection) => {
+                inject.set(dependency, undefined);
             });
-            delete (instance as any)[SERVICE_ID];
+            delete (dependency as any)[DEPENDENCY_ID];
 
-            delete this.serviceInstances[id];
+            delete this.dependencies[id];
         }
     }
 
     destroy() {
-        const allServices = Object.values(this.serviceInstances);
-        for (const service of allServices) {
-            this.removeService(service);
+        const allDependencies = Object.values(this.dependencies);
+        for (const dependency of allDependencies) {
+            this.removeDependency(dependency);
         }
 
-        this.serviceInstances = {};
+        this.dependencies = {};
 
         for (const child of Object.values(this.children)) {
             child.destroy();
@@ -195,19 +209,19 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
     }
 
-    private findInstance<T>(
-        serviceId: ServiceId
-    ): (T & ContainerizedServiceInstance) | undefined {
-        const instance = this.serviceInstances[serviceId];
-        if (!instance && this.parent) {
-            const parentInstance = this.parent.findInstance<
-                T & ContainerizedServiceInstance
-            >(serviceId);
+    private findDependency<T>(
+        dependencyId: DependencyId
+    ): (T & ContainerizedDependency) | undefined {
+        const dependency = this.dependencies[dependencyId];
+        if (!dependency && this.parent) {
+            const parentDependency = this.parent.findDependency<
+                T & ContainerizedDependency
+            >(dependencyId);
 
-            return parentInstance;
+            return parentDependency;
         }
 
-        return instance as T & ContainerizedServiceInstance;
+        return dependency as T & ContainerizedDependency;
     }
 
     private addChild(child: ProxyDiContainer) {
@@ -226,11 +240,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 }
 
-function isInstance(
-    service: ServiceId | ContainerizedServiceInstance
-): service is ContainerizedServiceInstance {
+function isDependency(
+    dependencyOrId: DependencyId | ContainerizedDependency
+): dependencyOrId is ContainerizedDependency {
     return (
-        typeof service === 'object' &&
-        !!(service as ContainerizedServiceInstance)[SERVICE_ID]
+        typeof dependencyOrId === 'object' &&
+        !!(dependencyOrId as ContainerizedDependency)[DEPENDENCY_ID]
     );
 }

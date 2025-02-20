@@ -3,22 +3,22 @@ import {
     isInjectionProxy,
     isInstanceProxy,
     makeInjectionProxy,
-    makeInstanceProxy,
+    makeDependencyProxy,
 } from '../src/Proxy.utils';
-import { autoInjectableService, inject, ProxyDiContainer } from '../src/index';
+import { autoInjectable, inject, ProxyDiContainer } from '../src/index';
 import { INJECTIONS } from '../src/types';
 
 const someServiceId = 'someService';
 const otherServiceId = 'otherService';
 
-@autoInjectableService(someServiceId)
+@autoInjectable(someServiceId)
 class SomeService {
     someValue = 1;
 
     @inject() unknown: any;
 }
 
-@autoInjectableService(otherServiceId)
+@autoInjectable(otherServiceId)
 class OtherService {
     @inject() [someServiceId]: SomeService;
 }
@@ -37,7 +37,7 @@ describe('Proxy utils', () => {
     });
 
     describe('makeInstanceProxy()', () => {
-        @autoInjectableService('serviceToInject')
+        @autoInjectable('serviceToInject')
         class ServiceToInject {
             value: string = 'injected';
         }
@@ -51,9 +51,9 @@ describe('Proxy utils', () => {
 
         it('should wrap instance', () => {
             const container = new ProxyDiContainer();
-            container.registerService('client', new Client());
+            container.registerDependency(new Client(), 'client');
             const client = container.resolve<Client>('client');
-            const clientWrapper = makeInstanceProxy(client);
+            const clientWrapper = makeDependencyProxy(client);
 
             expect(isInstanceProxy(clientWrapper)).is.true;
 
@@ -87,9 +87,7 @@ describe('Proxy utils', () => {
                 container
             );
 
-            expect(() => proxy.anyValue).toThrowError(
-                `Unknown ProxyDi-service`
-            );
+            expect(() => proxy.anyValue).toThrowError(`Unknown dependency`);
         });
 
         it('set', () => {
@@ -117,7 +115,7 @@ describe('Proxy utils', () => {
             );
 
             expect(() => (unknownService.someValue = 2)).toThrowError(
-                `Unknown ProxyDi-service`
+                `Unknown dependency`
             );
         });
 
@@ -145,7 +143,7 @@ describe('Proxy utils', () => {
 
             expect(() => {
                 'someValue' in proxy;
-            }).toThrowError(`Unknown ProxyDi-service`);
+            }).toThrowError(`Unknown dependency`);
         });
     });
 });

@@ -1,70 +1,61 @@
-export type ServiceId = string | symbol;
+export type DependencyId = string | symbol;
 
 // TODO: Leave only one of these
-export type ServiceClass<T extends unknown> = new () => T;
-export type InstancedServiceClass<T> = new (...args: any[]) => T;
-export type ServiceInstanced<T> = T extends { new (...args: any[]): any }
-    ? never
-    : T;
+export type DependencyClass<T extends unknown> = new () => T;
+export type InstancedDependency<T> = new (...args: any[]) => T;
+export type Instanced<T> = T extends { new (...args: any[]): any } ? never : T;
 
 export type Setter = (object: unknown, value: unknown) => void;
 
 export type Injection = {
     property: string | symbol;
-    serviceId: ServiceId;
+    dependencyId: DependencyId;
     set: Setter;
 };
 
 export type IProxyDiContainer = {
     id: number;
 
-    isKnown: (serviceId: ServiceId) => boolean;
+    isKnown: (dependencyId: DependencyId) => boolean;
 
-    injectDependencies: (instance: any) => void;
+    injectDependenciesTo: (dependency: any) => void;
 
-    registerService: <T>(
-        serviceId: ServiceId,
-        instance: T extends { new (...args: any[]): any } ? never : T
+    registerDependency: <T>(
+        instance: T extends { new (...args: any[]): any } ? never : T,
+        dependencyId: DependencyId
     ) => void;
 
-    createService: <T>(
-        serviceId: ServiceId,
-        serviceClass: InstancedServiceClass<T>
+    newDependency: <T>(
+        dependencyClass: InstancedDependency<T>,
+        dependencyId: DependencyId
     ) => void;
 
-    resolve: <T>(serviceId: ServiceId) => T & ContainerizedServiceInstance;
-
-    // resolveFor: <T>(
-    //     inject: Injection,
-    //     injectionOwner: ContainerizedServiceInstance,
-    //     container: IProxyDiContainer
-    // ) => T & ContainerizedServiceInstance;
+    resolve: <T>(serviceId: DependencyId) => T & ContainerizedDependency;
 
     createChildContainer: () => IProxyDiContainer;
 
-    removeService: (
-        serviceId: ServiceId | ContainerizedServiceInstance
+    removeDependency: (
+        serviceId: DependencyId | ContainerizedDependency
     ) => void;
     destroy: () => void;
 };
 
 export const INJECTIONS = Symbol('injections');
-export const SERVICE_ID = Symbol('ServiceId');
+export const DEPENDENCY_ID = Symbol('DependencyId');
 
 export type Injections = Record<string | symbol, Injection>;
-export type ServiceInstance = {
+export type Dependency = {
     [INJECTIONS]: Injections;
 };
 
-export type ContainerizedServiceInstance = ServiceInstance & {
-    [SERVICE_ID]: ServiceId;
+export type ContainerizedDependency = Dependency & {
+    [DEPENDENCY_ID]: DependencyId;
     [PROXYDY_CONTAINER]: IProxyDiContainer;
 };
 
-export type ProxyDiSettings = {
-    allowRegisterAnythingAsInstance?: boolean;
-
-    allowRewriteServices?: boolean;
+export type ContainerSettings = {
+    allowRegisterAnything?: boolean;
+    allowRewriteDependencies?: boolean;
 };
 
 export const IS_INJECTION_PROXY = Symbol('isInjectionProxy');
@@ -74,6 +65,6 @@ export const IS_INSTANCE_PROXY = Symbol('isInstanceProxy');
 
 export type InjectionProxy = {
     [IS_INJECTION_PROXY]: true;
-    [INJECTION_OWNER]: ContainerizedServiceInstance;
+    [INJECTION_OWNER]: ContainerizedDependency;
     [PROXYDY_CONTAINER]: IProxyDiContainer;
 };
