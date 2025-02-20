@@ -99,7 +99,7 @@ In this example, we changed the behavior of the actor by changing the role depen
 
 So, ProxyDi is a just tool to link dependencies. And nothing more. But we
 
-# С dependencies
+# Сircular dependencies
 
 There are several rough edges in traditional DI container implementations that ProxyDi addresses. The first of these is circular dependencies.
 
