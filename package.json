@@ -44,7 +44,7 @@
     "bugs": {
         "url": "https://github.com/proxy-di/proxydi/issues"
     },
-    "homepage": "https://github.com/proxy-di/proxydi#readme",
+    "homepage": "https://proxy-di.github.io/proxydi/",
     "devDependencies": {
         "@rollup/plugin-typescript": "^12.1.2",
         "@typescript-eslint/eslint-plugin": "^8.22.0",
