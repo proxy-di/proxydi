@@ -17,24 +17,49 @@ import {
 import { DEFAULT_SETTINGS } from './presets';
 import { makeInjectionProxy, makeDependencyProxy } from './Proxy.utils';
 
+/**
+ * A dependency injection container
+ */
 export class ProxyDiContainer implements IProxyDiContainer {
+    /**
+     * Static counter used to assign unique IDs to containers.
+     */
     private static idCounter = 0;
+
+    /**
+     * Unique identifier for this container class instance.
+     */
     public readonly id: number;
 
+    /**
+     * Optional parent container from which this container can inherit dependencies.
+     */
     public readonly parent?: ProxyDiContainer;
     private children: Record<number, ProxyDiContainer> = {};
 
     /**
-     * Holds dependencies of this particular container
+     * Holds dependencies registered particular in this container.
      */
     private dependencies: Record<DependencyId, ContainerizedDependency> = {};
+
+    /**
+     * Holds proxies for dependencies registered in parent containers to provide for it dependencies from this container
+     */
     private parentDependencyProxies: Record<
         DependencyId,
         ContainerizedDependency
     > = {};
 
+    /**
+     * Settings that control the behavior of the container and it's children
+     */
     public readonly settings: Required<ContainerSettings>;
 
+    /**
+     * Creates a new instance of ProxyDiContainer.
+     * @param settings Optional container settings to override defaults.
+     * @param parent Optional parent container.
+     */
     constructor(settings?: ContainerSettings, parent?: ProxyDiContainer) {
         this.id = ProxyDiContainer.idCounter++;
 
@@ -46,6 +71,15 @@ export class ProxyDiContainer implements IProxyDiContainer {
         this.settings = { ...DEFAULT_SETTINGS, ...settings };
     }
 
+    /**
+     * Registers a dependency in the container.
+     * Overload signatures:
+     * registerDependency<T>(dependency: T, dependencyId: DependencyId): void;
+     * registerDependency<T>(DependencyClass: new (...args: any[]) => T, dependencyId: DependencyId): void;
+     * @param param The dependency instance or dependency class.
+     * @param dependencyId The unique identifier for the dependency in this container.
+     * @throws Error if dependency is already registered and rewriting is not allowed or if invalid dependency (not object) is provided and this it now allowed.
+     */
     registerDependency<T>(
         dependency: Instanced<T>,
         dependencyId: DependencyId
@@ -84,12 +118,17 @@ export class ProxyDiContainer implements IProxyDiContainer {
             dependency[PROXYDY_CONTAINER] = this;
         }
 
-        this.registerDependencyImpl(dependencyId, dependency);
+        this.registerDependencyImpl(dependency, dependencyId);
     }
 
+    /**
+     * Internal method that implements registeration of dependency and prepare it for injection.
+     * @param dependencyId The unique identifier of the dependency.
+     * @param dependency The dependency instance.
+     */
     private registerDependencyImpl(
-        dependencyId: DependencyId,
-        dependency: any
+        dependency: any,
+        dependencyId: DependencyId
     ) {
         this.injectDependenciesTo(dependency);
 
@@ -100,6 +139,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
         this.dependencies[dependencyId] = dependency;
     }
 
+    /**
+     * Checks if a dependency with the given ID is known to the container or its ancestors which means that it can be resolved by this container
+     * @param dependencyId The identifier of the dependency.
+     * @returns True if the dependency is known, false otherwise.
+     */
     isKnown(dependencyId: DependencyId): boolean {
         return !!(
             this.parentDependencyProxies[dependencyId] ||
@@ -109,11 +153,16 @@ export class ProxyDiContainer implements IProxyDiContainer {
         );
     }
 
+    /**
+     * Resolves a dependency either by its dependency ID or through a class constructor for auto-injectable classes.
+     * @param param The dependency ID or class constructor.
+     * @returns The resolved dependency instance with container metadata.
+     * @throws Error if the dependency cannot be found or is not auto injectable.
+     */
     resolve<T>(dependencyId: DependencyId): T & ContainerizedDependency;
     resolve<T extends new (...args: any[]) => any>(
         SomeClass: T
     ): InstanceType<T>;
-
     resolve<T>(param: DependencyId | (new (...args: any[]) => any)): any {
         if (typeof param === 'function') {
             for (const [dependencyId, DependencyClass] of Object.entries(
@@ -153,11 +202,15 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
         const AutoInjectableClass = autoInjectableClasses[param];
         const autoDependency = new AutoInjectableClass();
-        this.registerDependencyImpl(param, autoDependency);
+        this.registerDependencyImpl(autoDependency, param);
         this.dependencies[param] = autoDependency;
         return autoDependency;
     }
 
+    /**
+     * Injects dependencies to the given object based on its defined injections metadata. Does not affect the container.
+     * @param injectionsOwner The object to inject dependencies into.
+     */
     injectDependenciesTo(injectionsOwner: any) {
         const dependencyInjects: Injections = injectionsOwner[INJECTIONS] || {};
 
@@ -171,6 +224,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
         });
     }
 
+    /**
+     * Finalizes dependency injections, prevents further rewriting of dependencies,
+     * and recursively bakes injections for child containers.
+     */
     bakeInjections() {
         for (const dependency of Object.values(this.dependencies)) {
             const dependencyInjects: Injections = dependency[INJECTIONS] || {};
@@ -188,10 +245,18 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
     }
 
+    /**
+     * Creates a child container that inherits settings and dependencies from this container.
+     * @returns A new child instance of ProxyDiContainer.
+     */
     createChildContainer(): ProxyDiContainer {
         return new ProxyDiContainer(this.settings, this);
     }
 
+    /**
+     * Removes a given dependency from the container using either the dependency instance or its ID.
+     * @param dependencyOrId The dependency instance or dependency identifier to remove.
+     */
     removeDependency(dependencyOrId: DependencyId | ContainerizedDependency) {
         const id = isDependency(dependencyOrId)
             ? dependencyOrId[DEPENDENCY_ID]
@@ -210,6 +275,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
     }
 
+    /**
+     * Destroys the container by removing all dependencies,
+     * recursively destroying child containers and removing itself from its parent.
+     */
     destroy() {
         const allDependencies = Object.values(this.dependencies);
         for (const dependency of allDependencies) {
@@ -229,6 +298,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
     }
 
+    /**
+     * Recursively finds a dependency by its ID from this container or its parent.
+     * @param dependencyId The identifier of the dependency to find.
+     * @returns The dependency if found, otherwise undefined.
+     */
     private findDependency<T>(
         dependencyId: DependencyId
     ): (T & ContainerizedDependency) | undefined {
@@ -244,6 +318,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
         return dependency as T & ContainerizedDependency;
     }
 
+    /**
+     * Registers a child container to this container.
+     * @param child The child container to add.
+     * @throws Error if a child with the same ID already exists.
+     */
     private addChild(child: ProxyDiContainer) {
         if (this.children[child.id]) {
             throw new Error(`ProxyDi already has child with id ${child.id}`);
@@ -252,6 +331,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
         this.children[child.id] = child;
     }
 
+    /**
+     * Removes a child container by its ID.
+     * @param id The identifier of the child container to remove.
+     */
     private removeChild(id: number) {
         const child = this.children[id];
         if (child) {
@@ -260,6 +343,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 }
 
+/**
+ * Helper function to determine if the provided argument is a dependency instance.
+ * @param dependencyOrId The dependency instance or dependency identifier.
+ * @returns True if the argument is a dependency instance, false otherwise.
+ */
 function isDependency(
     dependencyOrId: DependencyId | ContainerizedDependency
 ): dependencyOrId is ContainerizedDependency {

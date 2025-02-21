@@ -32,6 +32,7 @@ export type IProxyDiContainer = {
     ) => void;
 
     bakeInjections(): void;
+
     destroy: () => void;
 };
 
