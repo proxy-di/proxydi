@@ -14,9 +14,9 @@ class Second {
     @inject() first: First;
 }
 
-@autoInjectable('any')
-class AnyDependency {
-    name = 'any dependency';
+@autoInjectable('auto')
+class Auto {
+    name = "I'm auto";
 }
 
 describe('ProxyDi', () => {
@@ -38,14 +38,14 @@ describe('ProxyDi', () => {
     describe('isKnown()', () => {
         const dependencyId = 'known';
 
-        it('any dependency in unknown without registration', () => {
+        it('known dependency in unknown without registration', () => {
             const container = new ProxyDiContainer();
             expect(container.isKnown(dependencyId)).is.false;
         });
 
         it('@autoInjectableDependency always known', () => {
             const container = new ProxyDiContainer();
-            expect(container.isKnown('any')).is.true;
+            expect(container.isKnown('auto')).is.true;
         });
 
         it('class is known after registration', () => {
@@ -411,12 +411,12 @@ describe('ProxyDi', () => {
     describe('resolve by class', () => {
         it('should resolve by auto injectable class', () => {
             const container = new ProxyDiContainer();
-            const anyDependency = container.resolve(AnyDependency);
+            const autoDependency = container.resolve(Auto);
 
-            expect(anyDependency.name).equals('any dependency');
+            expect(autoDependency.name).equals("I'm auto");
         });
 
-        it('should be auto injectable', () => {
+        it('should be auto injectable to resolve without registration', () => {
             const container = new ProxyDiContainer();
 
             expect(() => container.resolve(First)).toThrowError(

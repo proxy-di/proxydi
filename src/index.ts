@@ -1,5 +1,5 @@
-export { ProxyDiContainer } from './ProxyDiContainer';
 export { inject } from './inject';
+export { ProxyDiContainer } from './ProxyDiContainer';
 export { autoInjectable } from './autoInjectable';
 export {
     Injection,
