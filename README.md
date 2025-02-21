@@ -55,6 +55,8 @@ For Babel projects, ensure that @babel/plugin-proposal-decorators is configured 
 
 ## Usage
 
+> We will use TypeScript for all examples, because it is easier to remove typing than add it
+
 The process of using ProxyDi consists of 3 stages:
 
 1. Use the @inject decorator to define the dependencies to be resolved by the ProxyDi container. In this example, we define an interface for characters and ask ProxyDi to resolve the `Role` dependency for actors.
@@ -79,8 +81,8 @@ class Agent007 implements Character {
 }
 
 const container = new ProxyDiContainer();
-container.newDependency(Agent007, 'Role');
-container.newDependency(Actor, 'Actor');
+container.registerDependency(Agent007, 'Role');
+container.registerDependency(Actor, 'Actor');
 ```
 
 3. At the last stage, take dependencies from the ProxyDi container and just use them. Let our actor play its role:
@@ -106,8 +108,8 @@ class M implements Character {
 }
 
 const container = new ProxyDiContainer();
-container.newDependency(M, 'Role');
-container.newDependency(Actor, 'Actor');
+container.registerDependency(M, 'Role');
+container.registerDependency(Actor, 'Actor');
 
 const actor = container.resolve<Actor>('Actor');
 console.log(actor.play());
@@ -153,9 +155,9 @@ class Actor {
 }
 
 const container = new ProxyDiContainer();
-container.newDependency(Actor, 'Actor');
-container.newDependency(Director, 'Director');
-container.newDependency(Agent007, 'Role');
+container.registerDependency(Actor, 'Actor');
+container.registerDependency(Director, 'Director');
+container.registerDependency(Agent007, 'Role');
 
 const actor = container.resolve<Actor>('Actor');
 console.log(actor.play());
@@ -167,21 +169,21 @@ console.log(actor.play());
 
 In traditional DI containers, this scene would be tricky to shoot - the Director calls Actor's methods while Actor simultaneously needs Director's guidance. But ProxyDi handles it elegantly using JavaScript Proxies, without any worries on your part.
 
-### Rewriting dependencies
+# Rewriting dependencies
 
 By default, ProxyDi doesn't allow rewriting dependencies in the container. After a dependency becomes known to the container, any attempt to register a new dependency with the same dependency ID will throw an Error:
 
 ```typescript
 const container = new ProxyDiContainer();
-container.newDependency(Actor, 'Actor');
-container.newDependency(Actor, 'Actor'); // !!! Error here
+container.registerDependency(Actor, 'Actor');
+container.registerDependency(Actor, 'Actor'); // !!! Error here
 ```
 
 However, there is an option that allows you to do these kinds of things:
 
 ```typescript
 const container = new ProxyDiContainer({ allowRewriteDependencies: true });
-container.newDependency(Actor, 'Actor');
+container.registerDependency(Actor, 'Actor');
 
 const actor = container.resolve<Actor>('Actor');
 const wrapper = new ActorWrapper(actor);

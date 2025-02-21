@@ -22,7 +22,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
     public readonly id: number;
 
     public readonly parent?: ProxyDiContainer;
-    private children: Record<number, IProxyDiContainer> = {};
+    private children: Record<number, ProxyDiContainer> = {};
 
     /**
      * Holds dependencies of this particular container
@@ -49,34 +49,12 @@ export class ProxyDiContainer implements IProxyDiContainer {
     registerDependency<T>(
         dependency: Instanced<T>,
         dependencyId: DependencyId
-    ) {
-        if (this.dependencies[dependencyId]) {
-            if (!this.settings.allowRewriteDependencies) {
-                throw new Error(
-                    `ProxyDi already has dependency for ${String(dependencyId)}`
-                );
-            }
-        }
-
-        const isObject = typeof dependency === 'object';
-
-        if (!isObject && !this.settings.allowRegisterAnything) {
-            throw new Error(
-                `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${dependency}`
-            );
-        }
-
-        if (isObject) {
-            (dependency as any)[PROXYDY_CONTAINER] = this;
-        }
-
-        this.registerDependencyImpl(dependencyId, dependency);
-    }
-
-    newDependency<T>(
+    ): void;
+    registerDependency<T>(
         DependencyClass: DependencyClass<T>,
         dependencyId: DependencyId
-    ) {
+    ): void;
+    registerDependency<T>(param: any, dependencyId: DependencyId): void {
         if (this.dependencies[dependencyId]) {
             if (!this.settings.allowRewriteDependencies) {
                 throw new Error(
@@ -85,8 +63,27 @@ export class ProxyDiContainer implements IProxyDiContainer {
             }
         }
 
-        const dependency: T = new DependencyClass();
-        (dependency as any)[PROXYDY_CONTAINER] = this;
+        let dependency: any;
+        const isClass = typeof param === 'function';
+
+        if (isClass) {
+            dependency = new param();
+        } else {
+            dependency = param;
+            if (
+                !(typeof dependency === 'object') &&
+                !this.settings.allowRegisterAnything
+            ) {
+                throw new Error(
+                    `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${dependency}`
+                );
+            }
+        }
+
+        if (typeof dependency === 'object') {
+            dependency[PROXYDY_CONTAINER] = this;
+        }
+
         this.registerDependencyImpl(dependencyId, dependency);
     }
 
@@ -112,33 +109,35 @@ export class ProxyDiContainer implements IProxyDiContainer {
         );
     }
 
-    resolveAutoInjectable<T extends new () => any>(
+    resolve<T>(dependencyId: DependencyId): T & ContainerizedDependency;
+    resolve<T extends new (...args: any[]) => any>(
         SomeClass: T
-    ): InstanceType<T> {
-        for (const [dependencyId, DependencyClass] of Object.entries(
-            autoInjectableClasses
-        )) {
-            if (DependencyClass === SomeClass) {
-                return this.resolve(dependencyId);
+    ): InstanceType<T>;
+
+    resolve<T>(param: DependencyId | (new (...args: any[]) => any)): any {
+        if (typeof param === 'function') {
+            for (const [dependencyId, DependencyClass] of Object.entries(
+                autoInjectableClasses
+            )) {
+                if (DependencyClass === param) {
+                    return this.resolve(dependencyId);
+                }
             }
+            throw new Error(`Class is not auto injectable: ${param.name}`);
         }
 
-        throw new Error(`Class is not auto injectable: ${SomeClass.name}`);
-    }
-
-    resolve<T>(dependencyId: DependencyId): T & ContainerizedDependency {
-        if (!this.isKnown(dependencyId)) {
+        if (!this.isKnown(param)) {
             throw new Error(
-                `Can't resolve unknown dependency: ${String(dependencyId)}`
+                `Can't resolve unknown dependency: ${String(param)}`
             );
         }
 
-        const proxy = this.parentDependencyProxies[dependencyId];
+        const proxy = this.parentDependencyProxies[param];
         if (proxy) {
             return proxy as T & ContainerizedDependency;
         }
 
-        const dependency = this.findDependency<T>(dependencyId);
+        const dependency = this.findDependency<T>(param);
         if (dependency) {
             if (
                 dependency[PROXYDY_CONTAINER] !== this &&
@@ -146,16 +145,16 @@ export class ProxyDiContainer implements IProxyDiContainer {
             ) {
                 const proxy = makeDependencyProxy(dependency);
                 this.injectDependenciesTo(proxy);
-                this.parentDependencyProxies[dependencyId] = proxy;
+                this.parentDependencyProxies[param] = proxy;
                 return proxy as any as T & ContainerizedDependency;
             }
             return dependency;
         }
 
-        const AutoInjectableClass = autoInjectableClasses[dependencyId];
+        const AutoInjectableClass = autoInjectableClasses[param];
         const autoDependency = new AutoInjectableClass();
-        this.registerDependencyImpl(dependencyId, autoDependency);
-        this.dependencies[dependencyId] = autoDependency;
+        this.registerDependencyImpl(param, autoDependency);
+        this.dependencies[param] = autoDependency;
         return autoDependency;
     }
 
