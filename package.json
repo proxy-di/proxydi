@@ -20,6 +20,7 @@
         "test:ci": "vitest run",
         "lint": "eslint src --ext .ts",
         "format": "prettier --write \"src/**/*.ts\"",
+        "docs": "npx typedoc src/index.ts --excludeNotDocumented --disableSources --customCss doc/doc.css --githubPages",
         "prepare": "npm run build",
         "coverage": "vitest run --coverage"
     },
@@ -52,6 +53,7 @@
         "eslint": "^9.19.0",
         "prettier": "^3.4.2",
         "rollup": "^4.32.1",
+        "typedoc": "^0.27.7",
         "typescript": "^5.7.3",
         "vitest": "^3.0.4"
     }
