@@ -21,15 +21,7 @@ export type IProxyDiContainer = {
 
     injectDependenciesTo: (dependency: any) => void;
 
-    registerDependency: <T>(
-        instance: T extends { new (...args: any[]): any } ? never : T,
-        dependencyId: DependencyId
-    ) => void;
-
-    newDependency: <T>(
-        dependencyClass: InstancedDependency<T>,
-        dependencyId: DependencyId
-    ) => void;
+    registerDependency: (dependency: any, dependencyId: DependencyId) => void;
 
     resolve: <T>(serviceId: DependencyId) => T & ContainerizedDependency;
 

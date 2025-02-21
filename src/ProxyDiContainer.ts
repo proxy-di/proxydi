@@ -22,7 +22,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
     public readonly id: number;
 
     public readonly parent?: ProxyDiContainer;
-    private children: Record<number, IProxyDiContainer> = {};
+    private children: Record<number, ProxyDiContainer> = {};
 
     /**
      * Holds dependencies of this particular container
@@ -49,34 +49,12 @@ export class ProxyDiContainer implements IProxyDiContainer {
     registerDependency<T>(
         dependency: Instanced<T>,
         dependencyId: DependencyId
-    ) {
-        if (this.dependencies[dependencyId]) {
-            if (!this.settings.allowRewriteDependencies) {
-                throw new Error(
-                    `ProxyDi already has dependency for ${String(dependencyId)}`
-                );
-            }
-        }
-
-        const isObject = typeof dependency === 'object';
-
-        if (!isObject && !this.settings.allowRegisterAnything) {
-            throw new Error(
-                `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${dependency}`
-            );
-        }
-
-        if (isObject) {
-            (dependency as any)[PROXYDY_CONTAINER] = this;
-        }
-
-        this.registerDependencyImpl(dependencyId, dependency);
-    }
-
-    newDependency<T>(
+    ): void;
+    registerDependency<T>(
         DependencyClass: DependencyClass<T>,
         dependencyId: DependencyId
-    ) {
+    ): void;
+    registerDependency<T>(param: any, dependencyId: DependencyId): void {
         if (this.dependencies[dependencyId]) {
             if (!this.settings.allowRewriteDependencies) {
                 throw new Error(
@@ -85,8 +63,27 @@ export class ProxyDiContainer implements IProxyDiContainer {
             }
         }
 
-        const dependency: T = new DependencyClass();
-        (dependency as any)[PROXYDY_CONTAINER] = this;
+        let dependency: any;
+        const isClass = typeof param === 'function';
+
+        if (isClass) {
+            dependency = new param();
+        } else {
+            dependency = param;
+            if (
+                !(typeof dependency === 'object') &&
+                !this.settings.allowRegisterAnything
+            ) {
+                throw new Error(
+                    `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${dependency}`
+                );
+            }
+        }
+
+        if (typeof dependency === 'object') {
+            dependency[PROXYDY_CONTAINER] = this;
+        }
+
         this.registerDependencyImpl(dependencyId, dependency);
     }
 

@@ -19,7 +19,7 @@ describe('README', () => {
         }
 
         const container = new ProxyDiContainer();
-        container.newDependency(Agent007, 'role');
+        container.registerDependency(Agent007, 'role');
 
         const actor = container.resolveAutoInjectable(Actor);
 
@@ -41,8 +41,8 @@ describe('README', () => {
         }
 
         const container = new ProxyDiContainer();
-        container.newDependency(Agent007, 'Role');
-        container.newDependency(Actor, 'Actor');
+        container.registerDependency(Agent007, 'Role');
+        container.registerDependency(Actor, 'Actor');
 
         const actor = container.resolve<Actor>('Actor');
 
@@ -83,9 +83,9 @@ describe('README', () => {
         }
 
         const container = new ProxyDiContainer();
-        container.newDependency(Actor, 'Actor');
-        container.newDependency(Director, 'Director');
-        container.newDependency(Agent007, 'Role');
+        container.registerDependency(Actor, 'Actor');
+        container.registerDependency(Director, 'Director');
+        container.registerDependency(Agent007, 'Role');
 
         const actor = container.resolve<Actor>('Actor');
         expect(actor.play()).equal('Bond... James Bond!');
