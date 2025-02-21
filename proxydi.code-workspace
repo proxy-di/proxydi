@@ -11,7 +11,10 @@
     },
 
     "extensions": {
-        "recommendations": ["esbenp.prettier-vscode"],
+        "recommendations": [
+            "esbenp.prettier-vscode",
+            "ryanluker.vscode-coverage-gutters",
+        ],
     },
 
     "launch": {

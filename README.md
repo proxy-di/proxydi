@@ -7,10 +7,10 @@ A typed hierarchical DI container that resolves circular dependencies via Proxy.
 Core features:
 
 - Uses Stage 3 decorators, supported in TypeScript 5.x ([examples repository](https://github.com/proxy-di/node-ts-examples)) and Babel via babel-plugin-proposal-decorators ([examples repository](https://github.com/proxy-di/node-babel-examples))
-- Automatically resolves circular dependencies
+- Automatically resolves circular dependencies with no persormance impact
 - Resolves dependencies in the context of a particular container
 - Matches dependencies by unique identifiers or automatically using class names and property names
-- Currently in active development, API may change until version 0.1.0
+- Currently under active development, the API may change until version 0.1.0
 
 # Quick start
 
@@ -30,17 +30,17 @@ If you are using TypeScript, ensure that `experimentalDecorators` is set to `fal
     "compilerOptions": {
         // ...
         "experimentalDecorators": false,
-        "strictPropertyInitialization": false
+        "strictPropertyInitialization": false,
     },
     //...
 }
 ```
 
-Changing `strictPropertyInitialization` is not necessary, but if you leave it by default you should slightly change all examples. More about this later.
+Changing `strictPropertyInitialization` is not necessary, but if you leave it at the default value, you will need to slightly modify the examples. More about this later.
 
-## Babel set
+## Babel set up
 
-For Babel's projects, be sure that @babel/plugin-proposal-decorators is set up exactly as follows:
+For Babel projects, ensure that @babel/plugin-proposal-decorators is configured exactly as follows:
 
 ```jsonc
 // .babelrc
@@ -117,11 +117,11 @@ console.log(actor.play());
 > 007, I have a new mission for you
 ```
 
-In this example, we changed the behavior of the actor by changing the role dependency in the ProxyDi container. This is the goal of the [Dependency inversion principle](https://en.wikipedia.org/wiki/Dependency_inversion_principle) in SOLID. Continuing our metaphor, the actor can play any role, but it is not he who decides what role he will play. This is a film director's decision, and here we just cosplay him by setting up our containers.
+In this example, we changed the behavior of the actor by changing the role dependency in the ProxyDi container. This is the goal of the [Dependency inversion principle](https://en.wikipedia.org/wiki/Dependency_inversion_principle) in SOLID. Continuing our metaphor, the actor can play any role, but he is not the one who decides which role he will play. This is a film director's decision, and here we just cosplay him by setting up our containers.
 
-So, ProxyDi is a just tool to link dependencies. And nothing more. But we
+So, ProxyDi is just a tool to link dependencies. And nothing more.
 
-# Сircular dependencies
+# Circular dependencies
 
 There are several rough edges in traditional DI container implementations that ProxyDi addresses. The first of these is circular dependencies.
 
@@ -143,7 +143,7 @@ class Actor {
 
     play() {
         const line = this.role.greet();
-        // Here actor asks director how to perform the line
+        // Here, the actor asks the director how to perform the line.
         return this.director.direct(line);
     }
 
@@ -165,4 +165,40 @@ console.log(actor.play());
 > Bond... James Bond!
 ```
 
-In traditional DI containers, this scene would be tricky to shoot - the Director calls Actor's methods while Actor simultaneously needs Director's guidance. But ProxyDi handles it elegantly using JavaScript Proxies without any worries from you.
+In traditional DI containers, this scene would be tricky to shoot - the Director calls Actor's methods while Actor simultaneously needs Director's guidance. But ProxyDi handles it elegantly using JavaScript Proxies, without any worries on your part.
+
+### Rewriting dependencies
+
+By default, ProxyDi doesn't allow rewriting dependencies in the container. After a dependency becomes known to the container, any attempt to register a new dependency with the same dependency ID will throw an Error:
+
+```typescript
+const container = new ProxyDiContainer();
+container.newDependency(Actor, 'Actor');
+container.newDependency(Actor, 'Actor'); // !!! Error here
+```
+
+However, there is an option that allows you to do these kinds of things:
+
+```typescript
+const container = new ProxyDiContainer({ allowRewriteDependencies: true });
+container.newDependency(Actor, 'Actor');
+
+const actor = container.resolve<Actor>('Actor');
+const wrapper = new ActorWrapper(actor);
+
+container.registerDependency(wrapper, 'Actor'); // No error is thrown here now
+```
+
+## Injection proxy performance
+
+As mentioned before, ProxyDi uses `Proxy` for each field marked by the @inject() decorator. This makes it possible to resolve circular dependencies. By default, these proxies are replaced by the actual dependency instances from the container during their first use, so the performance impact on your application is minimal.
+
+However, if you allow rewriting dependencies in the container, these proxies remain in use to keep injections updated. As a result, every time you access a dependency field, there is a significant performance impact. In our tests, property access via Proxy is up to 100 times slower. For this reason, we recommend not allowing rewriting dependencies in production and keeping the container’s default behavior.
+
+## Baking injections
+
+There is a container method `bakeInjections()` that bakes all injections and freezes the current container’s dependencies. After calling this method, the container will deny any attempts to rewrite dependencies. It also bakes the dependencies in all its children.
+
+After the container has been baked, the performance impact becomes zero. Therefore, you should use this method even for containers with default settings, ensuring that your application don't have to wait for the first use of each injection before they are baked.
+
+To be continued...
