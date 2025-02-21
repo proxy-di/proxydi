@@ -411,8 +411,7 @@ describe('ProxyDi', () => {
     describe('resolve by class', () => {
         it('should resolve by auto injectable class', () => {
             const container = new ProxyDiContainer();
-            const anyDependency =
-                container.resolveAutoInjectable(AnyDependency);
+            const anyDependency = container.resolve(AnyDependency);
 
             expect(anyDependency.name).equals('any dependency');
         });
@@ -420,7 +419,7 @@ describe('ProxyDi', () => {
         it('should be auto injectable', () => {
             const container = new ProxyDiContainer();
 
-            expect(() => container.resolveAutoInjectable(First)).toThrowError(
+            expect(() => container.resolve(First)).toThrowError(
                 'Class is not auto injectable'
             );
         });

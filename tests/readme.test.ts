@@ -21,7 +21,7 @@ describe('README', () => {
         const container = new ProxyDiContainer();
         container.registerDependency(Agent007, 'role');
 
-        const actor = container.resolveAutoInjectable(Actor);
+        const actor = container.resolve(Actor);
 
         expect(actor.play()).equal('Bond... James Bond');
     });
