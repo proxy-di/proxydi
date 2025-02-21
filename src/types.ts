@@ -15,6 +15,7 @@ export type Injection = {
 
 export type IProxyDiContainer = {
     id: number;
+    settings: Required<ContainerSettings>;
 
     isKnown: (dependencyId: DependencyId) => boolean;
 
@@ -37,6 +38,8 @@ export type IProxyDiContainer = {
     removeDependency: (
         serviceId: DependencyId | ContainerizedDependency
     ) => void;
+
+    bakeInjections(): void;
     destroy: () => void;
 };
 

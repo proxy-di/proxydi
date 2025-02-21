@@ -33,7 +33,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         ContainerizedDependency
     > = {};
 
-    private settings: Required<ContainerSettings>;
+    public readonly settings: Required<ContainerSettings>;
 
     constructor(settings?: ContainerSettings, parent?: ProxyDiContainer) {
         this.id = ProxyDiContainer.idCounter++;
@@ -58,13 +58,16 @@ export class ProxyDiContainer implements IProxyDiContainer {
             }
         }
 
-        if (
-            !(typeof dependency === 'object') &&
-            !this.settings.allowRegisterAnything
-        ) {
+        const isObject = typeof dependency === 'object';
+
+        if (!isObject && !this.settings.allowRegisterAnything) {
             throw new Error(
                 `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${dependency}`
             );
+        }
+
+        if (isObject) {
+            (dependency as any)[PROXYDY_CONTAINER] = this;
         }
 
         this.registerDependencyImpl(dependencyId, dependency);
@@ -83,6 +86,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
 
         const dependency: T = new DependencyClass();
+        (dependency as any)[PROXYDY_CONTAINER] = this;
         this.registerDependencyImpl(dependencyId, dependency);
     }
 
@@ -158,14 +162,31 @@ export class ProxyDiContainer implements IProxyDiContainer {
     injectDependenciesTo(injectionsOwner: any) {
         const dependencyInjects: Injections = injectionsOwner[INJECTIONS] || {};
 
-        Object.values(dependencyInjects).forEach((inject: Injection) => {
+        Object.values(dependencyInjects).forEach((injection: Injection) => {
             const dependencyProxy = makeInjectionProxy(
-                inject,
+                injection,
                 injectionsOwner,
                 this
             );
-            inject.set(injectionsOwner, dependencyProxy);
+            injection.set(injectionsOwner, dependencyProxy);
         });
+    }
+
+    bakeInjections() {
+        for (const dependency of Object.values(this.dependencies)) {
+            const dependencyInjects: Injections = dependency[INJECTIONS] || {};
+
+            Object.values(dependencyInjects).forEach((inject: Injection) => {
+                const value = this.resolve(inject.dependencyId);
+                inject.set(dependency, value);
+            });
+        }
+
+        this.settings.allowRewriteDependencies = false;
+
+        for (const child of Object.values(this.children)) {
+            child.bakeInjections();
+        }
     }
 
     createChildContainer(): ProxyDiContainer {

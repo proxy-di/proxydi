@@ -21,16 +21,20 @@ class InjectionProxy implements IInjectionProxy {
 }
 
 export const makeInjectionProxy = <T>(
-    inject: Injection,
+    injection: Injection,
     injectionOwner: ContainerizedDependency,
     container: IProxyDiContainer
 ): T => {
     function getDependency() {
-        if (container.isKnown(inject.dependencyId)) {
-            return container.resolve(inject.dependencyId) as any;
+        if (container.isKnown(injection.dependencyId)) {
+            const dependency = container.resolve(injection.dependencyId) as any;
+            if (!container.settings.allowRewriteDependencies) {
+                injection.set(injectionOwner, dependency);
+            }
+            return dependency;
         } else {
             throw new Error(
-                `Unknown dependency: ${String(inject.dependencyId)}`
+                `Unknown dependency: ${String(injection.dependencyId)}`
             );
         }
     }
