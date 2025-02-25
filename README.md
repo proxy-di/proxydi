@@ -4,6 +4,9 @@
 
 A typed hierarchical DI container that resolves circular dependencies via Proxy.
 
+<img src="https://raw.githubusercontent.com/proxy-di/proxydi/refs/heads/gh-pages/images/ProxyDiLogo.png" width="196">
+
+
 Core features:
 
 - Uses Stage 3 decorators, supported in TypeScript 5.x ([examples repository](https://github.com/proxy-di/node-ts-examples)) and Babel via babel-plugin-proposal-decorators ([examples repository](https://github.com/proxy-di/node-babel-examples))

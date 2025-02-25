@@ -1,4 +1,4 @@
-name: CI
+name: Coverage badge
 
 on:
     push:
