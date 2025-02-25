@@ -4,7 +4,7 @@
 
 A typed hierarchical DI container that resolves circular dependencies via Proxy.
 
-<img src="https://raw.githubusercontent.com/proxy-di/proxydi/refs/heads/gh-pages/images/ProxyDiLogo.png" width="196">
+<img src="https://github.com/proxy-di/proxydi/blob/main/assets/ProxyDiLogo.png?raw=true" width="196">
 
 
 Core features:
