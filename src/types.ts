@@ -23,6 +23,8 @@ export type IProxyDiContainer = {
     resolve: <T>(dependencyId: DependencyId) => T & ContainerizedDependency;
 
     createChildContainer: () => IProxyDiContainer;
+    children: IProxyDiContainer[];
+    getChild(id: number): IProxyDiContainer;
 
     remove: (dependencyId: DependencyId | ContainerizedDependency) => void;
 

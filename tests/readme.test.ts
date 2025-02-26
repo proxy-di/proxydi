@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { autoInjectable, inject, ProxyDiContainer } from '../src';
+import { autoInjectable, inject, ProxyDiContainer, resolveAll } from '../src';
 
 describe('README', () => {
     it('Quick start', () => {
@@ -96,17 +96,18 @@ describe('README', () => {
             constructor(public readonly settings: { undewater: boolean }) {}
         }
 
+        interface Perk {
+            activate(): void;
+        }
+
         class Character {
             public health = 100;
-            private onHiters: any[] = [];
-
-            on(_event: string, callback: () => void) {
-                this.onHiters.push(callback);
-            }
 
             hit(abount: number) {
                 this.health -= abount;
-                this.onHiters.forEach((callback) => callback());
+
+                const perks = resolveAll<Perk>(this, 'perk');
+                perks.forEach((perk) => perk.activate());
             }
         }
 
@@ -116,11 +117,7 @@ describe('README', () => {
 
             constructor(private amount: number) {}
 
-            init() {
-                this.character.on('hit', this.act);
-            }
-
-            act = () =>
+            activate = () =>
                 this.level.settings.undewater &&
                 (this.character.health += this.amount);
         }
@@ -132,8 +129,7 @@ describe('README', () => {
         const hero = heroContainer.register<Character>(Character, 'character');
 
         const perksContainer = heroContainer.createChildContainer();
-        const perk = perksContainer.register(new UnderwaterShield(10), 'perk');
-        perk.init();
+        perksContainer.register(new UnderwaterShield(10), 'perk');
 
         expect(hero.health).equal(100);
 

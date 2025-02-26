@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { inject, ProxyDiContainer, autoInjectable } from '../src/index';
+import {
+    inject,
+    ProxyDiContainer,
+    autoInjectable,
+    resolveAll,
+} from '../src/index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
 import { DEPENDENCY_ID, PROXYDY_CONTAINER } from '../src/types';
 import { isInjectionProxy } from '../src/Proxy.utils';
@@ -190,6 +195,92 @@ describe('ProxyDi', () => {
             const instance2 = container.resolve(dependencyId);
 
             expect(instance1).is.equals(instance2);
+        });
+    });
+
+    describe('resolveAll()', () => {
+        it('throws error if instance not in container', () => {
+            const second = new Second();
+            expect(() => resolveAll<First>(second, 'first')).toThrowError(
+                'Instance is not registered in any container'
+            );
+        });
+
+        it('throws error if dependency class is auto injectable', () => {
+            const container = new ProxyDiContainer();
+            const first = container.register(First, 'first');
+
+            expect(() => resolveAll(first, Second)).toThrowError(
+                'Class is not auto injectable'
+            );
+        });
+
+        it('resolves empty array if no dependencies', () => {
+            const container = new ProxyDiContainer();
+            const auto = container.resolve<Auto>('auto');
+            const dependencies = resolveAll(auto, 'first');
+
+            expect(dependencies).is.empty;
+        });
+
+        it('resolves empty array from hierarchy', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+
+            const auto = child.resolve<Auto>('auto');
+            const dependencies = resolveAll(auto, 'first');
+
+            expect(dependencies).is.empty;
+        });
+
+        it('resolves dependency by AutoInjectable', () => {
+            const container = new ProxyDiContainer();
+            const first = container.register(First, 'first');
+            const auto = container.resolve<Auto>('auto');
+
+            const dependencies = resolveAll(first, Auto);
+
+            expect(dependencies.length).is.equals(1);
+            expect(dependencies[0]).equals(auto);
+        });
+
+        it('resolves dependency from container itself', () => {
+            const container = new ProxyDiContainer();
+            const instance = container.register(First, 'first');
+            const auto = container.resolve<Auto>('auto');
+
+            const dependencies = resolveAll(auto, 'first');
+
+            expect(dependencies.length).is.equals(1);
+            expect(dependencies[0]).equals(instance);
+        });
+
+        it('resolves dependency from child', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+
+            const instance = child.register(First, 'first');
+            const auto = parent.resolve<Auto>('auto');
+
+            const dependencies = resolveAll(auto, 'first');
+
+            expect(dependencies.length).is.equals(1);
+            expect(dependencies[0]).equals(instance);
+        });
+
+        it('resolves dependencies from both', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+
+            const instance1 = parent.register(First, 'first');
+            const instance2 = child.register(First, 'first');
+            const auto = parent.resolve<Auto>('auto');
+
+            const dependencies = resolveAll<First>(auto, 'first');
+
+            expect(dependencies.length).is.equals(2);
+            expect(dependencies.includes(instance1)).is.true;
+            expect(dependencies.includes(instance2)).is.true;
         });
     });
 
