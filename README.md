@@ -201,7 +201,7 @@ This is not how I propose to design games, ECS pattern does it better, but the g
 
 ### Resolving dependencies from parents
 
-As a bonus, each bottom level dependency is free to use any dependency from the top:
+As a bonus, each bottom level dependency is free to use any dependency from the top just as if they were registered in its own container:
 
 ```typescript
 class UnderwaterShield {
@@ -215,7 +215,7 @@ class UnderwaterShield {
 }
 ```
 
-In this example, the perk checks if the character is underwater and if so, increases its health. To do its job, perk has access to the character and the level, which are registered in the parent containers.
+In this example, the shield perk increases character health if it is underwater. The perk receives both level and character using the @inject() decorator, the same way as we have seen so far.
 
 ## Resolving dependencies from children
 
@@ -234,11 +234,11 @@ class Character {
 }
 ```
 
-In this example, the character is able activate all its perks. To do its job, the character has access to all perks, which are registered in all children containers.
+In this example, the character activates all its perks, which are registered in all children containers. The way it do this job need a little bit more explanation.
 
 ### Reference to the container
 
-Reading last example, you may be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveall.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance. So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
+Here you should be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveall.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance. So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
 
 Despite this explanation is a little bit complicated, the example is simple, the character just acts all its perks.
 
