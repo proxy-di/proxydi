@@ -19,7 +19,7 @@ describe('README', () => {
         }
 
         const container = new ProxyDiContainer();
-        container.registerDependency(Agent007, 'role');
+        container.register(Agent007, 'role');
 
         const actor = container.resolve(Actor);
 
@@ -41,8 +41,8 @@ describe('README', () => {
         }
 
         const container = new ProxyDiContainer();
-        container.registerDependency(Agent007, 'Role');
-        container.registerDependency(Actor, 'Actor');
+        container.register(Agent007, 'Role');
+        container.register(Actor, 'Actor');
 
         const actor = container.resolve<Actor>('Actor');
 
@@ -83,11 +83,64 @@ describe('README', () => {
         }
 
         const container = new ProxyDiContainer();
-        container.registerDependency(Actor, 'Actor');
-        container.registerDependency(Director, 'Director');
-        container.registerDependency(Agent007, 'Role');
+        container.register(Actor, 'Actor');
+        container.register(Director, 'Director');
+        container.register(Agent007, 'Role');
 
         const actor = container.resolve<Actor>('Actor');
         expect(actor.play()).equal('Bond... James Bond!');
+    });
+
+    it('Hierarchy of containers', () => {
+        class GameLevel {
+            constructor(public readonly settings: { undewater: boolean }) {}
+        }
+
+        class Character {
+            public health = 100;
+            private onHiters: any[] = [];
+
+            on(_event: string, callback: () => void) {
+                this.onHiters.push(callback);
+            }
+
+            hit(abount: number) {
+                this.health -= abount;
+                this.onHiters.forEach((callback) => callback());
+            }
+        }
+
+        class UnderwaterShield {
+            @inject('level') private level: GameLevel;
+            @inject('character') private character: Character;
+
+            constructor(private amount: number) {}
+
+            init() {
+                this.character.on('hit', this.act);
+            }
+
+            act = () =>
+                this.level.settings.undewater &&
+                (this.character.health += this.amount);
+        }
+
+        const tutorialContainer = new ProxyDiContainer();
+        tutorialContainer.register(new GameLevel({ undewater: true }), 'level');
+
+        const heroContainer = tutorialContainer.createChildContainer();
+        const hero = heroContainer.register<Character>(Character, 'character');
+
+        const perksContainer = heroContainer.createChildContainer();
+        const perk = perksContainer.register(new UnderwaterShield(10), 'perk');
+        perk.init();
+
+        expect(hero.health).equal(100);
+
+        hero.hit(10);
+        expect(hero.health).equal(100);
+
+        hero.hit(20);
+        expect(hero.health).equal(90);
     });
 });

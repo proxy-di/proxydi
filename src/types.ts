@@ -1,9 +1,6 @@
 export type DependencyId = string | symbol;
 
-// TODO: Leave only one of these
-export type DependencyClass<T extends unknown> = new () => T;
-export type InstancedDependency<T> = new (...args: any[]) => T;
-export type Instanced<T> = T extends { new (...args: any[]): any } ? never : T;
+export type DependencyClass<T> = new (...args: any[]) => T;
 
 export type Setter = (object: unknown, value: unknown) => void;
 
@@ -21,15 +18,13 @@ export type IProxyDiContainer = {
 
     injectDependenciesTo: (dependency: any) => void;
 
-    registerDependency: (dependency: any, dependencyId: DependencyId) => void;
+    register: (dependency: any, dependencyId: DependencyId) => any;
 
-    resolve: <T>(serviceId: DependencyId) => T & ContainerizedDependency;
+    resolve: <T>(dependencyId: DependencyId) => T & ContainerizedDependency;
 
     createChildContainer: () => IProxyDiContainer;
 
-    removeDependency: (
-        serviceId: DependencyId | ContainerizedDependency
-    ) => void;
+    remove: (dependencyId: DependencyId | ContainerizedDependency) => void;
 
     bakeInjections(): void;
 
@@ -44,14 +39,25 @@ export type Dependency = {
     [INJECTIONS]: Injections;
 };
 
+/**
+ * Respresent dependency instance that was registered in ProxyDi container
+ */
 export type ContainerizedDependency = Dependency & {
+    /**
+     * Unique identifier that could use to resolve this instance
+     */
     [DEPENDENCY_ID]: DependencyId;
+
+    /**
+     * ProxyDi container in which this instance was registered
+     */
     [PROXYDY_CONTAINER]: IProxyDiContainer;
 };
 
 export type ContainerSettings = {
     allowRegisterAnything?: boolean;
     allowRewriteDependencies?: boolean;
+    resolveInContainerContext?: boolean;
 };
 
 export const IS_INJECTION_PROXY = Symbol('isInjectionProxy');

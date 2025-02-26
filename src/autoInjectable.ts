@@ -1,8 +1,8 @@
-import { InstancedDependency, DependencyId } from './types';
+import { DependencyClass, DependencyId } from './types';
 
 export const autoInjectableClasses: Record<
     DependencyId,
-    InstancedDependency<any>
+    DependencyClass<any>
 > = {};
 
 /**
@@ -17,7 +17,7 @@ export const autoInjectableClasses: Record<
  */
 export const autoInjectable = (dependencyId?: DependencyId) => {
     return function (
-        value: InstancedDependency<any>,
+        value: DependencyClass<any>,
         context: ClassDecoratorContext
     ) {
         if (context?.kind === 'class') {

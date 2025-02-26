@@ -1,6 +1,6 @@
 {
     "name": "proxydi",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "description": "A typed hierarchical DI container that resolves circular dependencies via Proxy",
     "type": "module",
     "main": "./dist/index.cjs",

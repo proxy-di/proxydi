@@ -4,6 +4,8 @@ export { autoInjectable } from './autoInjectable';
 export {
     Injection,
     DependencyId,
-    InstancedDependency,
+    DependencyClass,
     ContainerSettings as ProxyDiSettings,
+    PROXYDY_CONTAINER,
+    DEPENDENCY_ID,
 } from './types';
