@@ -11,6 +11,7 @@ Core features:
 - Uses Stage 3 decorators, supported in TypeScript 5.x ([examples repository](https://github.com/proxy-di/node-ts-examples)) and Babel via babel-plugin-proposal-decorators ([examples repository](https://github.com/proxy-di/node-babel-examples))
 - Automatically resolves circular dependencies with no performance impact
 - Resolves dependencies in the context of a particular container
+- Supports hierarchical containers with the ability to resolve dependencies in both directions
 - Matches dependencies by unique identifiers or automatically using class names and property names
 - Currently under active development, the API may change until version 0.1.0
 
