@@ -16,7 +16,7 @@ Core features:
 
 ## Quick start
 
-> If you are using React, you should use the React wrapper for ProxyDi instead of this library directly: [@proxydi/react](https://www.npmjs.com/package/@proxydi/react) 
+> If you are using React, you should use the React wrapper for ProxyDi instead of this library directly: [@proxydi/react](https://github.com/proxy-di/proxydi-react)
 
 Install the `proxydi` package in your JavaScript or TypeScript project:
 
@@ -63,7 +63,7 @@ For Babel projects, ensure that @babel/plugin-proposal-decorators is configured 
 
 The process of using ProxyDi consists of 3 stages:
 
-1. Use the [@inject](https://proxy-di.github.io/proxydi/functions/inject.html) decorator to define the dependencies to be resolved by the ProxyDi container. In this example, we define an interface for characters and ask ProxyDi to resolve the `Role` dependency for actors.
+1. Use the [@inject()](https://proxy-di.github.io/proxydi/functions/inject.html) decorator to define the dependencies to be resolved by the ProxyDi container. In this example, we define an interface for characters and ask ProxyDi to resolve the `Role` dependency for actors.
 
 ```typescript
 interface Character {
@@ -78,7 +78,7 @@ class Actor {
 ```
 
 2. Next, create the [ProxyDiContainer](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html)
-   and fill it with dependencies using [register](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#register) metod. For example, let's define an agent 007 role and prepare our first container:
+   and fill it with dependencies using [register()](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#register) metod. For example, let's define an agent 007 role and prepare our first container:
 
 ```typescript
 class Agent007 implements Character {
@@ -174,7 +174,48 @@ console.log(actor.play());
 
 In traditional DI containers, this scene would be tricky to shoot - the Director calls Actor's methods while Actor simultaneously needs Director's guidance.
 
-But take a look, our approach is still the same - we just link dependencies by @inject and use them freely without any worries. ProxyDi handles this tricky issue as elegantly as is even possible. It does this using JavaScript Proxies, more about Proxies and theirs impact on perfomance [later](https://proxy-di.github.io/proxydi/index.html#injection-proxy-performance).
+But take a look, our approach is still the same - we just link dependencies by @inject and use them freely without any worries. ProxyDi handles this tricky issue as elegantly as is even possible. It does this using JavaScript Proxies, more about Proxies and theirs impact on perfomance [later](#injection-proxy-performance).
+
+## Hierarchy of containers
+
+Another tricky part of DI containers is the ability to create multiple instances of the same class. ProxyDi solves this problem in the simplest way possible - it just does not allow it. When you register a class as a dependency, there is only one instance of this class in the container.
+
+Instead, it suggests you to use a hierarchy of containers by using [createChildContainer()](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#createchildcontainer) method. Child container inherits all parent settings and can resolve exactly the same dependencies as their parent (but parent container does not have access to dependencies registered in its children).
+
+For example, imagine you are working on a game level, there are many characters on this level, each character could have many perks.
+
+With ProxyDi we can present all these stuff in a hierarchy of containers. The most top container holds information about game level, the most bottom ones hold information about perks:
+
+```typescript
+const tutorialContainer = new ProxyDiContainer();
+tutorialContainer.register(new GameLevel({ undewater: true }), 'level');
+
+const heroContainer = tutorialContainer.createChildContainer();
+const hero = heroContainer.register<Character>(Character, 'character');
+
+const perksContainer = heroContainer.createChildContainer();
+const perk = perksContainer.register(new UnderwaterShield(10), 'perk');
+```
+
+This is not how I propose to design games, ECS pattern does it better, but the goal was to demonstrate that with this approach instead of creating bunches of instances to represent your project entities, you can create bunches of containers each of them containing instances related to each other.
+
+As a bonus, each bottom level dependency is free to use any dependency from the top:
+
+```typescript
+class UnderwaterShield {
+    @inject('level') private level: GameLevel;
+    @inject('character') private character: Character;
+
+    constructor(private amount: number) {}
+
+    initialize() {
+        this.character.on('hit', this.act);
+    }
+
+    act = () =>
+        this.level.isUnderwater && (this.character.health += this.amount);
+}
+```
 
 ## Rewriting dependencies
 
@@ -209,49 +250,6 @@ However, if you allow rewriting dependencies in the container, these proxies rem
 There is a container method [bakeInjections()](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#bakeinjections) that bakes all injections and freezes the current container’s dependencies. After calling this method, the container restores behaviour by default and denies any attempts to rewrite dependencies. It also bakes the dependencies in all its children.
 
 Therefore, after the container has been baked, the performance impact becomes zero. So, you could use this method even for containers with default settings, ensuring that your application doesn't have to wait for the first use of each injection before they are baked.
-
-## Hierarchy of containers
-
-Another tricky part of DI containers is the ability to create multiple instances of the same class. ProxyDi solves this problem in the simplest way possible - it just does not allow it.
-
-Instead, it suggests you to use a hierarchy of containers by using method [createChildContainer()](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#createchildcontainer):
-
-Child container inherits all parent settings and can resolve exactly the same dependencies as their parent (but parent container does not have access to dependencies registered in its children).
-
-Imagine you are working on a game level, there are many items and characters on this level, each character could have many perks.
-
-With ProxyDi we can present all these stuff in a hierarchy of containers. The most top container holds information about game level, the most bottom ones hold information about perks:
-
-```typescript
-const tutorialContainer = new ProxyDiContainer();
-tutorialContainer.register(new GameLevel({ undewater: true }), 'level');
-
-const heroContainer = tutorialContainer.createChildContainer();
-const hero = heroContainer.register<Character>(Character, 'character');
-
-const perksContainer = heroContainer.createChildContainer();
-const perk = perksContainer.register(new UnderwaterShield(10), 'perk');
-```
-
-This is not how I propose to design games, ECS pattern does it better, but the goal was to demonstrate that with this approach instead of creating bunches of instances to represent your project entities, you can create bunches of containers each of them containing instances related to each other.
-
-As a bonus, each bottom level dependency is free to use any dependency from the top:
-
-```typescript
-class UnderwaterShield {
-    @inject('level') private level: GameLevel;
-    @inject('character') private character: Character;
-
-    constructor(private amount: number) {}
-
-    initialize() {
-        this.character.on('hit', this.act);
-    }
-
-    act = () =>
-        this.level.isUnderwater && (this.character.health += this.amount);
-}
-```
 
 To be continued...
 
