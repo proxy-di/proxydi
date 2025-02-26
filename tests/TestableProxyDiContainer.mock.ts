@@ -2,7 +2,7 @@ import { ProxyDiContainer } from '../src/ProxyDiContainer';
 
 export class TestableProxyDiContainer extends ProxyDiContainer {
     getChildren() {
-        return (this as any).children;
+        return (this as any)._children;
     }
 
     desreaseIdCounter() {

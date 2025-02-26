@@ -1,3 +1,6 @@
+doc/
+assets/
+
 # Exclude version control directories
 .git/
 .gitignore

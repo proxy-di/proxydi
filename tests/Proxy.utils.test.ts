@@ -51,7 +51,7 @@ describe('Proxy utils', () => {
 
         it('should wrap instance', () => {
             const container = new ProxyDiContainer();
-            container.registerDependency(new Client(), 'client');
+            container.register(new Client(), 'client');
             const client = container.resolve<Client>('client');
             const clientWrapper = makeDependencyProxy(client);
 
