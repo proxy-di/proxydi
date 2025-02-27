@@ -83,8 +83,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
     register<T>(
         DependencyClass: DependencyClass<T>,
         dependencyId: DependencyId
-    ): T;
-    register<T>(dependency: T, dependencyId: DependencyId): T;
+    ): T & ContainerizedDependency;
+    register<T>(
+        dependency: T extends new (...args: any[]) => any ? never : T,
+        dependencyId: DependencyId
+    ): T & ContainerizedDependency;
     register(dependency: any, dependencyId: DependencyId): any {
         if (this.dependencies[dependencyId]) {
             if (!this.settings.allowRewriteDependencies) {
@@ -158,8 +161,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
     resolve<T>(dependencyId: DependencyId): T & ContainerizedDependency;
     resolve<T extends new (...args: any[]) => any>(
         SomeClass: T
-    ): InstanceType<T>;
-    resolve<T>(param: DependencyId | (new (...args: any[]) => any)): any {
+    ): InstanceType<T> & ContainerizedDependency;
+    resolve<T>(
+        param: DependencyId | (new (...args: any[]) => any)
+    ): T & ContainerizedDependency {
         if (typeof param === 'function') {
             for (const [dependencyId, DependencyClass] of Object.entries(
                 autoInjectableClasses
@@ -199,9 +204,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
         const AutoInjectableClass = autoInjectableClasses[param];
         const autoDependency = new AutoInjectableClass();
-        this.registerImpl(autoDependency, param);
-        this.dependencies[param] = autoDependency;
-        return autoDependency;
+        return this.register(autoDependency, param);
     }
 
     /**
