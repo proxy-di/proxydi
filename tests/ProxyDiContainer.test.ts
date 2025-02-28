@@ -711,7 +711,7 @@ describe('ProxyDi', () => {
         it('Engagement party', () => {
             @injectable(['Fiancée'])
             class Fiancé {
-                name: string = `Jhon`;
+                name: string = `John`;
                 constructor(public readonly feancee: Fiancée) {}
 
                 introduce = () =>
@@ -729,15 +729,15 @@ describe('ProxyDi', () => {
 
             const container = new ProxyDiContainer();
 
-            const jhon = container.resolve(Fiancé);
+            const john = container.resolve(Fiancé);
             const mary = container.resolve(Fiancée);
 
-            expect(jhon.feancee.name).equal(`Mary`);
-            expect(mary.feance.name).equal(`Jhon`);
-            expect(jhon.introduce()).equal(
-                `I'm Jhon and this my fiancée, Mary`
+            expect(john.feancee.name).equal(`Mary`);
+            expect(mary.feance.name).equal(`John`);
+            expect(john.introduce()).equal(
+                `I'm John and this my fiancée, Mary`
             );
-            expect(mary.introduce()).equal(`I'm Mary and this my fiancé, Jhon`);
+            expect(mary.introduce()).equal(`I'm Mary and this my fiancé, John`);
         });
 
         
