@@ -1,7 +1,10 @@
 import { DependencyClass, DependencyId } from './types';
 
 export const injectableClasses: Record<DependencyId, DependencyClass<any>> = {};
-export const constructorInjections: Record<DependencyId, DependencyId[]> = {};
+export const constructorInjections: Record<
+    DependencyId,
+    (DependencyId | DependencyClass<any>)[]
+> = {};
 
 /**
  * Registers a class as an automatically injectable for dependency injection container.
@@ -14,31 +17,59 @@ export const constructorInjections: Record<DependencyId, DependencyId[]> = {};
  * will create an instance of the decorated class. However, if a container already has an instance with that identifier
  * prior to resolution, the decorated class will be ignored by that container.
  */
-export const injectable = (
+export function injectable(
+    autoInjecions: (DependencyId | DependencyClass<any>)[]
+): any;
+export function injectable(
     dependencyId?: DependencyId,
-    autoInjecions?: DependencyId[]
-) => {
+    autoInjecions?: (DependencyId | DependencyClass<any>)[]
+): any;
+export function injectable(
+    dependencyOrDependencies?:
+        | DependencyId
+        | (DependencyId | DependencyClass<any>)[],
+    autoInjecions?: (DependencyId | DependencyClass<any>)[] | any
+): any {
     return function (
         value: DependencyClass<any>,
         context: ClassDecoratorContext
     ) {
-        console.log(context);
-        if (context?.kind === 'class') {
-            const name = dependencyId ? dependencyId : context.name!;
-
-            if (injectableClasses[name]) {
-                console.log('Throw error');
-                throw new Error(
-                    `ProxyDi has already regisered dependency ${String(name)} by @injectable`
-                );
-            }
-
-            injectableClasses[name] = value;
-            if (autoInjecions) {
-                constructorInjections[name] = autoInjecions;
-            }
-        } else {
+        if (context?.kind !== 'class') {
             throw new Error('@injectable decorator should decorate classes');
         }
+
+        const name = dependencyOrDependencies
+            ? Array.isArray(dependencyOrDependencies)
+                ? context.name!
+                : dependencyOrDependencies
+            : context.name!;
+
+        const injectToConstructor = dependencyOrDependencies
+            ? Array.isArray(dependencyOrDependencies)
+                ? dependencyOrDependencies
+                : autoInjecions
+            : autoInjecions;
+
+        if (injectableClasses[name]) {
+            throw new Error(
+                `ProxyDi has already regisered dependency ${String(name)} by @injectable`
+            );
+        }
+
+        injectableClasses[name] = value;
+        if (injectToConstructor) {
+            constructorInjections[name] = injectToConstructor;
+        }
     };
-};
+}
+
+export function findInjectableId(
+    injectable: DependencyClass<any>
+): DependencyId {
+    for (const [id, DependencyClass] of Object.entries(injectableClasses)) {
+        if (DependencyClass === injectable) {
+            return id;
+        }
+    }
+    throw new Error(`Class is not @injectable: ${injectable.name}`);
+}

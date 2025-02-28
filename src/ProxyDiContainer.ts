@@ -7,7 +7,11 @@ import {
     PROXYDY_CONTAINER,
     Injections,
 } from './types';
-import { injectableClasses } from './injectable';
+import {
+    constructorInjections,
+    findInjectableId,
+    injectableClasses,
+} from './injectable';
 import {
     Injection,
     ContainerSettings as ContainerSettings,
@@ -101,7 +105,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         const isClass = typeof dependency === 'function';
 
         if (isClass) {
-            dependencyInstance = new dependency();
+            dependencyInstance = this.createInstance(dependency, dependencyId);
         } else {
             dependencyInstance = dependency;
             if (
@@ -121,6 +125,19 @@ export class ProxyDiContainer implements IProxyDiContainer {
         this.registerImpl(dependencyInstance, dependencyId);
 
         return dependencyInstance;
+    }
+
+    private createInstance(
+        dependency: DependencyClass<any>,
+        dependencyId: DependencyId
+    ): any {
+        const dependencyIds = constructorInjections[dependencyId] || [];
+        const dependencies: any[] = [];
+        for (const id of dependencyIds) {
+            dependencies.push(this.resolve<any>(id));
+        }
+
+        return new dependency(...dependencies);
     }
 
     /**
@@ -159,52 +176,45 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * @throws Error if the dependency cannot be found or is not auto injectable.
      */
     resolve<T>(dependencyId: DependencyId): T & ContainerizedDependency;
-    resolve<T extends new (...args: any[]) => any>(
+    resolve<T extends DependencyClass<any>>(
         SomeClass: T
     ): InstanceType<T> & ContainerizedDependency;
     resolve<T>(
-        param: DependencyId | (new (...args: any[]) => any)
+        dependency: DependencyId | DependencyClass<any>
     ): T & ContainerizedDependency {
-        if (typeof param === 'function') {
-            for (const [dependencyId, DependencyClass] of Object.entries(
-                injectableClasses
-            )) {
-                if (DependencyClass === param) {
-                    return this.resolve(dependencyId);
-                }
-            }
-            throw new Error(`Class is not auto injectable: ${param.name}`);
+        if (typeof dependency === 'function') {
+            const id = findInjectableId(dependency);
+            return this.resolve(id);
         }
 
-        if (!this.isKnown(param)) {
+        if (!this.isKnown(dependency)) {
             throw new Error(
-                `Can't resolve unknown dependency: ${String(param)}`
+                `Can't resolve unknown dependency: ${String(dependency)}`
             );
         }
 
-        const proxy = this.parentDependencyProxies[param];
+        const proxy = this.parentDependencyProxies[dependency];
         if (proxy) {
             return proxy as T & ContainerizedDependency;
         }
 
-        const dependency = this.findDependency<T>(param);
-        if (dependency) {
+        const instance = this.findDependency<T>(dependency);
+        if (instance) {
             if (
-                dependency[PROXYDY_CONTAINER] !== this &&
-                typeof dependency === 'object' &&
+                instance[PROXYDY_CONTAINER] !== this &&
+                typeof instance === 'object' &&
                 this.settings.resolveInContainerContext
             ) {
-                const proxy = makeDependencyProxy(dependency);
+                const proxy = makeDependencyProxy(instance);
                 this.injectDependenciesTo(proxy);
-                this.parentDependencyProxies[param] = proxy;
+                this.parentDependencyProxies[dependency] = proxy;
                 return proxy as any as T & ContainerizedDependency;
             }
-            return dependency;
+            return instance;
         }
 
-        const InjectableClass = injectableClasses[param];
-        const autoDependency = new InjectableClass();
-        return this.register(autoDependency, param);
+        const InjectableClass = injectableClasses[dependency];
+        return this.register(InjectableClass, dependency);
     }
 
     /**

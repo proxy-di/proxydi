@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-    inject,
-    ProxyDiContainer,
-    injectable,
-    resolveAll,
-} from '../src/index';
+import { inject, ProxyDiContainer, injectable, resolveAll } from '../src/index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
 import { DEPENDENCY_ID, PROXYDY_CONTAINER } from '../src/types';
 import { isInjectionProxy } from '../src/Proxy.utils';
@@ -211,7 +206,7 @@ describe('ProxyDi', () => {
             const first = container.register(First, 'first');
 
             expect(() => resolveAll(first, Second)).toThrowError(
-                'Class is not auto injectable'
+                'Class is not @injectable'
             );
         });
 
@@ -568,7 +563,7 @@ describe('ProxyDi', () => {
             const container = new ProxyDiContainer();
 
             expect(() => container.resolve(First)).toThrowError(
-                'Class is not auto injectable'
+                'Class is not @injectable'
             );
         });
     });
