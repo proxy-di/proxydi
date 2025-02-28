@@ -1,4 +1,4 @@
-import { autoInjectableClasses } from './autoInjectable';
+import { injectableClasses } from './injectable';
 import {
     ContainerizedDependency,
     DependencyId,
@@ -24,9 +24,7 @@ export function resolveAll<T>(
     dependencyId: any
 ): (T & ContainerizedDependency)[] {
     if (typeof dependencyId === 'function') {
-        for (const [id, DependencyClass] of Object.entries(
-            autoInjectableClasses
-        )) {
+        for (const [id, DependencyClass] of Object.entries(injectableClasses)) {
             if (DependencyClass === dependencyId) {
                 return resolveAll(instance, id);
             }

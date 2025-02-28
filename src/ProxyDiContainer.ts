@@ -7,7 +7,7 @@ import {
     PROXYDY_CONTAINER,
     Injections,
 } from './types';
-import { autoInjectableClasses } from './autoInjectable';
+import { injectableClasses } from './injectable';
 import {
     Injection,
     ContainerSettings as ContainerSettings,
@@ -148,7 +148,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
             this.parentDependencyProxies[dependencyId] ||
             this.dependencies[dependencyId] ||
             (this.parent && this.parent.isKnown(dependencyId)) ||
-            autoInjectableClasses[dependencyId]
+            injectableClasses[dependencyId]
         );
     }
 
@@ -167,7 +167,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
     ): T & ContainerizedDependency {
         if (typeof param === 'function') {
             for (const [dependencyId, DependencyClass] of Object.entries(
-                autoInjectableClasses
+                injectableClasses
             )) {
                 if (DependencyClass === param) {
                     return this.resolve(dependencyId);
@@ -202,8 +202,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
             return dependency;
         }
 
-        const AutoInjectableClass = autoInjectableClasses[param];
-        const autoDependency = new AutoInjectableClass();
+        const InjectableClass = injectableClasses[param];
+        const autoDependency = new InjectableClass();
         return this.register(autoDependency, param);
     }
 

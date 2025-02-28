@@ -15,6 +15,6 @@
     "include": ["src"],
     "exclude": ["node_modules", "dist", "**/*.test.ts"],
     "typedocOptions": {
-        "sort": "source-order",
+        "sort": "source-order"
     }
 }

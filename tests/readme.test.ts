@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { autoInjectable, inject, ProxyDiContainer, resolveAll } from '../src';
+import { injectable, inject, ProxyDiContainer, resolveAll } from '../src';
 
 describe('README', () => {
     it('Quick start', () => {
@@ -7,7 +7,7 @@ describe('README', () => {
             greet(): string;
         }
 
-        @autoInjectable()
+        @injectable()
         class Actor {
             @inject() role: Character;
 

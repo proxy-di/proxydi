@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     inject,
     ProxyDiContainer,
-    autoInjectable,
+    injectable,
     resolveAll,
 } from '../src/index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
@@ -19,7 +19,7 @@ class Second {
     @inject() first: First;
 }
 
-@autoInjectable('auto')
+@injectable('auto')
 class Auto {
     name = "I'm auto";
 }
@@ -48,7 +48,7 @@ describe('ProxyDi', () => {
             expect(container.isKnown(dependencyId)).is.false;
         });
 
-        it('@autoInjectableDependency always known', () => {
+        it('@injectable always known', () => {
             const container = new ProxyDiContainer();
             expect(container.isKnown('auto')).is.true;
         });
@@ -233,7 +233,7 @@ describe('ProxyDi', () => {
             expect(dependencies).is.empty;
         });
 
-        it('resolves dependency by AutoInjectable', () => {
+        it('resolves dependency by @injectable', () => {
             const container = new ProxyDiContainer();
             const first = container.register(First, 'first');
             const auto = container.resolve<Auto>('auto');

@@ -218,7 +218,7 @@ class UnderwaterShield {
 
 In this example, the shield perk increases character health if it is underwater. The perk receives both level and character using the @inject() decorator, the same way as we have seen so far.
 
-## Resolving dependencies from children
+### Resolving dependencies from children
 
 Backward bonus of containers hierarchy, each top level dependency is free to use all dependency from the bottom:
 

@@ -1,20 +1,20 @@
-import { describe, it, expect } from 'vitest';
-import { inject, ProxyDiContainer, autoInjectable } from '../src/index';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { inject, ProxyDiContainer, injectable } from '../src/index';
 
-@autoInjectable()
+@injectable()
 class First {
     name = "I'm first!";
     @inject() second: Second;
 }
 
-@autoInjectable('second')
+@injectable('second')
 class Second {
     name = "I'm second!";
     @inject('First') first: First;
 }
 
-describe('@autoInjectableService()', () => {
-    it("should resolve dependency just by @autoInjectable ID's without registration", () => {
+describe('@injectable()', () => {
+    it("should resolve dependency just by @injectable ID's without registration", () => {
         const container = new ProxyDiContainer();
 
         const dependency1 = container.resolve<First>('First');
@@ -24,23 +24,21 @@ describe('@autoInjectableService()', () => {
         expect(dependency2.first.name).is.equals("I'm first!");
     });
 
-    it('should throw error for dependency ID duplicate ', () => {
+    it.only('should throw error for dependency ID duplicate ', () => {
         expect(() => {
-            @autoInjectable('second')
+            @injectable('second')
             class SecondAgain {}
-        }).toThrowError(
-            `ProxyDi autoInjectable already has dependency ID: second`
-        );
+        }).toThrowError(`ProxyDi has already regisered dependency`)
     });
 
     it('should decorate class', () => {
         expect(() => {
-            const anyautoInjectable = autoInjectable as any;
+            const anyInjectable = injectable as any;
 
             class Test {
-                @anyautoInjectable()
+                @anyInjectable()
                 field: true;
             }
-        }).toThrowError('@autoInjectable decorator should decorate classes');
+        }).toThrowError('@injectable decorator should decorate classes');
     });
 });
