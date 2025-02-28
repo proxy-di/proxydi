@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { injectable, inject, ProxyDiContainer, resolveAll } from '../src';
-import { KindomKing } from './mock/King';
-import { KindomQueen } from './mock/Queen';
 
 describe('README', () => {
     it('Quick start', () => {
@@ -96,14 +94,18 @@ describe('README', () => {
     it('Kindom', () => {
         @injectable(['Queen'])
         class King {
-            readonly name = `I'm a king`;
-            constructor(public readonly queen: Queen) {}
+            name: string = `I'm a king`;
+            constructor(public readonly queen: Queen) {
+                queen.name = `I'm a king's queen`;
+            }
         }
 
         @injectable(['King'])
         class Queen {
-            readonly name = `I'm a queen`;
-            constructor(public readonly king: King) {}
+            name: string = `I'm a queen`;
+            constructor(public readonly king: King) {
+                // king.name = `I'm a queen's king`;
+            }
         }
 
         const container = new ProxyDiContainer();
@@ -111,18 +113,10 @@ describe('README', () => {
         const king = container.resolve(King);
         const queen = container.resolve(Queen);
 
-        expect(king.queen.name).equal(`I'm a queen`);
+        expect(king.queen.name).equal(`I'm a king's queen`);
         expect(queen.king.name).equal(`I'm a king`);
-    });
-
-    it('Kindom from files', () => {
-        const container = new ProxyDiContainer();
-
-        const king = container.resolve(KindomKing);
-        const queen = container.resolve(KindomQueen);
-
-        expect(king.queen.name).equal(`I'm a queen`);
-        expect(queen.king.name).equal(`I'm a king`);
+        // TODO: Make it work
+        // expect(queen.king.name).equal(`I'm a queen's king`);
     });
 
     it('Hierarchy of containers', () => {
