@@ -1,10 +1,7 @@
 import { DependencyClass, DependencyId } from './types';
 
 export const injectableClasses: Record<DependencyId, DependencyClass<any>> = {};
-export const constructorInjections: Record<
-    DependencyId,
-    (DependencyId | DependencyClass<any>)[]
-> = {};
+export const constructorInjections: Record<DependencyId, DependencyId[]> = {};
 
 /**
  * Registers a class as an automatically injectable for dependency injection container.
@@ -17,18 +14,14 @@ export const constructorInjections: Record<
  * will create an instance of the decorated class. However, if a container already has an instance with that identifier
  * prior to resolution, the decorated class will be ignored by that container.
  */
-export function injectable(
-    autoInjecions: (DependencyId | DependencyClass<any>)[]
-): any;
+export function injectable(autoInjecions: DependencyId[]): any;
 export function injectable(
     dependencyId?: DependencyId,
-    autoInjecions?: (DependencyId | DependencyClass<any>)[]
+    autoInjecions?: DependencyId[]
 ): any;
 export function injectable(
-    dependencyOrDependencies?:
-        | DependencyId
-        | (DependencyId | DependencyClass<any>)[],
-    autoInjecions?: (DependencyId | DependencyClass<any>)[] | any
+    dependencyOrDependencies?: DependencyId | DependencyId[],
+    autoInjecions?: DependencyId[] | any
 ): any {
     return function (
         value: DependencyClass<any>,

@@ -23,16 +23,6 @@ class Forth {
     constructor(public readonly first: First) {}
 }
 
-@injectable('fifth', [First])
-class Fifth {
-    constructor(public readonly first: First) {}
-}
-
-@injectable([First])
-class Sixth {
-    constructor(public readonly first: First) {}
-}
-
 describe('@injectable()', () => {
     it("should resolve dependency just by @injectable ID's without registration", () => {
         const container = new ProxyDiContainer();
@@ -78,23 +68,5 @@ describe('@injectable()', () => {
 
         expect(forth.first).is.not.undefined;
         expect(forth.first.name).equal("I'm first!");
-    });
-
-    it.only('constructor injections could be setup via @injectable classes', () => {
-        const container = new ProxyDiContainer();
-
-        const fifth = container.resolve(Fifth);
-
-        expect(fifth.first).is.not.undefined;
-        expect(fifth.first.name).equal("I'm first!");
-    });
-
-    it.only('6th variation of configuree construtor injections', () => {
-        const container = new ProxyDiContainer();
-
-        const sixth = container.resolve(Sixth);
-
-        expect(sixth.first).is.not.undefined;
-        expect(sixth.first.name).equal("I'm first!");
     });
 });

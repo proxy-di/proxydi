@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { injectable, inject, ProxyDiContainer, resolveAll } from '../src';
+import { KindomKing } from './mock/King';
+import { KindomQueen } from './mock/Queen';
 
 describe('README', () => {
     it('Quick start', () => {
@@ -98,7 +100,7 @@ describe('README', () => {
             constructor(public readonly queen: Queen) {}
         }
 
-        @injectable([King])
+        @injectable(['King'])
         class Queen {
             readonly name = `I'm a queen`;
             constructor(public readonly king: King) {}
@@ -108,6 +110,16 @@ describe('README', () => {
 
         const king = container.resolve(King);
         const queen = container.resolve(Queen);
+
+        expect(king.queen.name).equal(`I'm a queen`);
+        expect(queen.king.name).equal(`I'm a king`);
+    });
+
+    it('Kindom from files', () => {
+        const container = new ProxyDiContainer();
+
+        const king = container.resolve(KindomKing);
+        const queen = container.resolve(KindomQueen);
 
         expect(king.queen.name).equal(`I'm a queen`);
         expect(queen.king.name).equal(`I'm a king`);
