@@ -52,7 +52,7 @@ describe('@injectable()', () => {
         }).toThrowError('@injectable decorator should decorate classes');
     });
 
-    it.only('should pass injections to constructor with depenency', () => {
+    it('should pass injections to constructor with depenency', () => {
         const container = new ProxyDiContainer();
 
         const third = container.resolve<Third>('third');
@@ -61,7 +61,7 @@ describe('@injectable()', () => {
         expect(third.first.name).equal("I'm first!");
     });
 
-    it.only('should pass injections to constructor', () => {
+    it('should pass injections to constructor', () => {
         const container = new ProxyDiContainer();
 
         const forth = container.resolve(Forth);
