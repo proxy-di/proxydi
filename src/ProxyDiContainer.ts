@@ -19,6 +19,7 @@ import {
 } from './types';
 import { DEFAULT_SETTINGS } from './presets';
 import { makeInjectionProxy, makeDependencyProxy } from './Proxy.utils';
+import { makeConstructorDependencyProxy } from './proxy.constuctor';
 
 /**
  * A dependency injection container
@@ -128,16 +129,17 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 
     private createInstance(
-        dependency: DependencyClass<any>,
+        Dependency: DependencyClass<any>,
         dependencyId: DependencyId
     ): any {
-        const dependencyIds = constructorInjections[dependencyId] || [];
-        const dependencies: any[] = [];
-        for (const id of dependencyIds) {
-            dependencies.push(this.resolve<any>(id));
+        const paramIds = constructorInjections[dependencyId] || [];
+        const params: any[] = [];
+        for (const id of paramIds) {
+            const param = makeConstructorDependencyProxy(this, id);
+            params.push(param);
         }
 
-        return new dependency(...dependencies);
+        return new Dependency(...params);
     }
 
     /**

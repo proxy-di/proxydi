@@ -91,6 +91,28 @@ describe('README', () => {
         expect(actor.play()).equal('Bond... James Bond!');
     });
 
+    it('Kindom', () => {
+        @injectable(['Queen'])
+        class King {
+            readonly name = `I'm a king`;
+            constructor(public readonly queen: Queen) {}
+        }
+
+        @injectable([King])
+        class Queen {
+            readonly name = `I'm a queen`;
+            constructor(public readonly king: King) {}
+        }
+
+        const container = new ProxyDiContainer();
+
+        const king = container.resolve(King);
+        const queen = container.resolve(Queen);
+
+        expect(king.queen.name).equal(`I'm a queen`);
+        expect(queen.king.name).equal(`I'm a king`);
+    });
+
     it('Hierarchy of containers', () => {
         class GameLevel {
             constructor(public readonly settings: { undewater: boolean }) {}
