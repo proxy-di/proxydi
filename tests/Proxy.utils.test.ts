@@ -5,20 +5,20 @@ import {
     makeInjectionProxy,
     makeDependencyProxy,
 } from '../src/Proxy.utils';
-import { autoInjectable, inject, ProxyDiContainer } from '../src/index';
+import { injectable, inject, ProxyDiContainer } from '../src/index';
 import { INJECTIONS } from '../src/types';
 
 const someDependencyId = 'someDependency';
 const otherDependencyId = 'otherDependency';
 
-@autoInjectable(someDependencyId)
+@injectable(someDependencyId)
 class SomeDependency {
     someValue = 1;
 
     @inject() unknown: any;
 }
 
-@autoInjectable(otherDependencyId)
+@injectable(otherDependencyId)
 class OtherDependency {
     @inject() [someDependencyId]: SomeDependency;
 }
@@ -37,7 +37,7 @@ describe('Proxy utils', () => {
     });
 
     describe('makeInstanceProxy()', () => {
-        @autoInjectable('dependencyToInject')
+        @injectable('dependencyToInject')
         class DependencyToInject {
             value: string = 'injected';
         }

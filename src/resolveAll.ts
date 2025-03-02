@@ -1,4 +1,4 @@
-import { autoInjectableClasses } from './autoInjectable';
+import { findInjectableId } from './injectable';
 import {
     ContainerizedDependency,
     DependencyId,
@@ -24,14 +24,8 @@ export function resolveAll<T>(
     dependencyId: any
 ): (T & ContainerizedDependency)[] {
     if (typeof dependencyId === 'function') {
-        for (const [id, DependencyClass] of Object.entries(
-            autoInjectableClasses
-        )) {
-            if (DependencyClass === dependencyId) {
-                return resolveAll(instance, id);
-            }
-        }
-        throw new Error(`Class is not auto injectable: ${dependencyId.name}`);
+        const id = findInjectableId(dependencyId);
+        return resolveAll(instance, id);
     }
 
     const container = (instance as ContainerizedDependency)[PROXYDY_CONTAINER];

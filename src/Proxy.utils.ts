@@ -39,7 +39,11 @@ export const makeInjectionProxy = <T>(
         }
     }
     return new Proxy(new InjectionProxy(injectionOwner, container), {
-        get: function (target: InjectionProxy, prop: string, receiver: any) {
+        get: function (
+            target: InjectionProxy,
+            prop: string | symbol,
+            receiver: any
+        ) {
             if ((target as any)[prop]) {
                 return (target as any)[prop];
             }
@@ -48,12 +52,16 @@ export const makeInjectionProxy = <T>(
             return Reflect.get(dependency, prop, receiver);
         },
 
-        set: function (target: InjectionProxy, prop: string, value: any) {
+        set: function (
+            target: InjectionProxy,
+            prop: string | symbol,
+            value: any
+        ) {
             const dependency = getDependency();
             return Reflect.set(dependency, prop, value);
         },
 
-        has: function (target: InjectionProxy, prop: string) {
+        has: function (target: InjectionProxy, prop: string | symbol) {
             const dependency = getDependency();
             return Reflect.has(dependency, prop);
         },
@@ -64,7 +72,11 @@ export function makeDependencyProxy(dependency: any) {
     const injectionValues: Record<string | symbol, any> = {};
 
     return new Proxy(dependency, {
-        get: function (target, prop, receiver) {
+        get: function (
+            target: InjectionProxy,
+            prop: string | symbol,
+            receiver: any
+        ) {
             if (prop === IS_INSTANCE_PROXY) {
                 return true;
             }
@@ -75,7 +87,11 @@ export function makeDependencyProxy(dependency: any) {
             return Reflect.get(target, prop, receiver);
         },
 
-        set: function (target: InjectionProxy, prop: string, value: any) {
+        set: function (
+            target: InjectionProxy,
+            prop: string | symbol,
+            value: any
+        ) {
             injectionValues[prop] = value;
             return Reflect.set(target, prop, value);
         },

@@ -34,7 +34,20 @@ export type IProxyDiContainer = {
 };
 
 export const INJECTIONS = Symbol('injections');
+
+/**
+ * This symbol constant defines a property name.
+ * This property is present in each dependency instance that was registered in ProxyDiContainer.
+ * The property stores the dependency identifier that should be used to resolve dependency from the container where it was registered.
+ */
 export const DEPENDENCY_ID = Symbol('DependencyId');
+
+/**
+ * This symbol constant defines a property name.
+ * This property is present in each dependency instance that was registered in ProxyDiContainer.
+ * The property stores a reference to the ProxyDiContainer in which the dependency was registered.
+ */
+export const PROXYDY_CONTAINER = Symbol('proxyDiContainer');
 
 export type Injections = Record<string | symbol, Injection>;
 export type Dependency = {
@@ -46,7 +59,7 @@ export type Dependency = {
  */
 export type ContainerizedDependency = Dependency & {
     /**
-     * Unique identifier that could use to resolve this instance
+     * Unique identifier that could use to resolve this instance from container where it was registered
      */
     [DEPENDENCY_ID]: DependencyId;
 
@@ -64,7 +77,7 @@ export type ContainerSettings = {
 
 export const IS_INJECTION_PROXY = Symbol('isInjectionProxy');
 export const INJECTION_OWNER = Symbol('injectionOwner');
-export const PROXYDY_CONTAINER = Symbol('proxyDiContainer');
+
 export const IS_INSTANCE_PROXY = Symbol('isInstanceProxy');
 
 export type InjectionProxy = {

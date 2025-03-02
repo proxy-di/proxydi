@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { autoInjectable, inject, ProxyDiContainer, resolveAll } from '../src';
+import { injectable, inject, ProxyDiContainer, resolveAll } from '../src';
 
 describe('README', () => {
     it('Quick start', () => {
@@ -7,7 +7,7 @@ describe('README', () => {
             greet(): string;
         }
 
-        @autoInjectable()
+        @injectable()
         class Actor {
             @inject() role: Character;
 
@@ -89,6 +89,34 @@ describe('README', () => {
 
         const actor = container.resolve<Actor>('Actor');
         expect(actor.play()).equal('Bond... James Bond!');
+    });
+
+    it('Kindom', () => {
+        @injectable(['Queen'])
+        class King {
+            name: string = `I'm a king`;
+            constructor(public readonly queen: Queen) {
+                queen.name = `I'm a king's queen`;
+            }
+        }
+
+        @injectable(['King'])
+        class Queen {
+            name: string = `I'm a queen`;
+            constructor(public readonly king: King) {
+                // king.name = `I'm a queen's king`;
+            }
+        }
+
+        const container = new ProxyDiContainer();
+
+        const king = container.resolve(King);
+        const queen = container.resolve(Queen);
+
+        expect(king.queen.name).equal(`I'm a king's queen`);
+        expect(queen.king.name).equal(`I'm a king`);
+        // TODO: Make it work
+        // expect(queen.king.name).equal(`I'm a queen's king`);
     });
 
     it('Hierarchy of containers', () => {

@@ -12,8 +12,11 @@ Core features:
 - Automatically resolves circular dependencies with no performance impact
 - Resolves dependencies in the context of a particular container
 - Supports hierarchical containers with the ability to resolve dependencies in both directions
-- Matches dependencies by unique identifiers or automatically using class names and property names
 - Currently under active development, the API may change until version 0.1.0
+
+Eperimemntal features:
+- Construtor injections (see unit tests for examples)
+- Matches dependencies by unique identifiers or automatically using class names and property names
 
 ## Quick start
 
@@ -218,7 +221,7 @@ class UnderwaterShield {
 
 In this example, the shield perk increases character health if it is underwater. The perk receives both level and character using the @inject() decorator, the same way as we have seen so far.
 
-## Resolving dependencies from children
+### Resolving dependencies from children
 
 Backward bonus of containers hierarchy, each top level dependency is free to use all dependency from the bottom:
 

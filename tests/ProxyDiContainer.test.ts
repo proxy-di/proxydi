@@ -1,13 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import {
-    inject,
-    ProxyDiContainer,
-    autoInjectable,
-    resolveAll,
-} from '../src/index';
+import { inject, ProxyDiContainer, injectable, resolveAll } from '../src/index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
 import { DEPENDENCY_ID, PROXYDY_CONTAINER } from '../src/types';
 import { isInjectionProxy } from '../src/Proxy.utils';
+import { KindomKing } from './mock/King';
+import { KindomQueen } from './mock/Queen';
 
 class First {
     constructor(public readonly name: string = "I'm first!") {}
@@ -19,7 +16,7 @@ class Second {
     @inject() first: First;
 }
 
-@autoInjectable('auto')
+@injectable('auto')
 class Auto {
     name = "I'm auto";
 }
@@ -48,7 +45,7 @@ describe('ProxyDi', () => {
             expect(container.isKnown(dependencyId)).is.false;
         });
 
-        it('@autoInjectableDependency always known', () => {
+        it('@injectable always known', () => {
             const container = new ProxyDiContainer();
             expect(container.isKnown('auto')).is.true;
         });
@@ -211,7 +208,7 @@ describe('ProxyDi', () => {
             const first = container.register(First, 'first');
 
             expect(() => resolveAll(first, Second)).toThrowError(
-                'Class is not auto injectable'
+                'Class is not @injectable'
             );
         });
 
@@ -233,7 +230,7 @@ describe('ProxyDi', () => {
             expect(dependencies).is.empty;
         });
 
-        it('resolves dependency by AutoInjectable', () => {
+        it('resolves dependency by @injectable', () => {
             const container = new ProxyDiContainer();
             const first = container.register(First, 'first');
             const auto = container.resolve<Auto>('auto');
@@ -568,7 +565,7 @@ describe('ProxyDi', () => {
             const container = new ProxyDiContainer();
 
             expect(() => container.resolve(First)).toThrowError(
-                'Class is not auto injectable'
+                'Class is not @injectable'
             );
         });
     });
@@ -708,37 +705,85 @@ describe('ProxyDi', () => {
 
             expect(child.settings.allowRewriteDependencies).is.false;
         });
-
-        // it('test performance', () => {
-        //     const container = new ProxyDiContainer({
-        //         allowRewriteDependencies: true,
-        //     });
-
-        //     container.register(First, 'first');
-        //     container.register(Second, 'second');
-
-        //     const iterations = 10000000;
-
-        //     const first = container.resolve<First>('first');
-        //     const start = Date.now();
-        //     for (let i = 0; i < iterations; i++) {
-        //         const a = first.second.name;
-        //     }
-        //     const end = Date.now();
-        //     console.log(`${iterations} iterations:`, end - start, 'ms');
-
-        //     container.bakeInjections();
-
-        //     const start2 = Date.now();
-        //     for (let i = 0; i < iterations; i++) {
-        //         const a = first.second.name;
-        //     }
-        //     const end2 = Date.now();
-        //     console.log(
-        //         `${iterations} iterations after baking:`,
-        //         end2 - start2,
-        //         'ms'
-        //     );
-        // });
     });
+
+    describe('constructor injections', () => {
+        it('Engagement party', () => {
+            @injectable(['Fiancée'])
+            class Fiancé {
+                name: string = `John`;
+                constructor(public readonly feancee: Fiancée) {}
+
+                introduce = () =>
+                    `I'm ${this.name} and this my fiancée, ${this.feancee.name}`;
+            }
+
+            @injectable(['Fiancé'])
+            class Fiancée {
+                name: string = `Mary`;
+                constructor(public readonly feance: Fiancé) {}
+
+                introduce = () =>
+                    `I'm ${this.name} and this my fiancé, ${this.feance.name}`;
+            }
+
+            const container = new ProxyDiContainer();
+
+            const john = container.resolve(Fiancé);
+            const mary = container.resolve(Fiancée);
+
+            expect(john.feancee.name).equal(`Mary`);
+            expect(mary.feance.name).equal(`John`);
+            expect(john.introduce()).equal(
+                `I'm John and this my fiancée, Mary`
+            );
+            expect(mary.introduce()).equal(`I'm Mary and this my fiancé, John`);
+        });
+
+        
+
+        it('Kindom from files', () => {
+            const container = new ProxyDiContainer();
+
+            const king = container.resolve(KindomKing);
+            const queen = container.resolve(KindomQueen);
+
+            expect(king.queen.name).equal(`I'm a queen`);
+            expect(queen.king.name).equal(`I'm a king`);
+        });
+    });
+
+    // describe('performance', () => {
+    //     it('inections proxy', () => {
+    //         const container = new ProxyDiContainer({
+    //             allowRewriteDependencies: true,
+    //         });
+
+    //         container.register(First, 'first');
+    //         container.register(Second, 'second');
+
+    //         const iterations = 10000000;
+
+    //         const first = container.resolve<First>('first');
+    //         const start = Date.now();
+    //         for (let i = 0; i < iterations; i++) {
+    //             const a = first.second.name;
+    //         }
+    //         const end = Date.now();
+    //         console.log(`${iterations} iterations:`, end - start, 'ms');
+
+    //         container.bakeInjections();
+
+    //         const start2 = Date.now();
+    //         for (let i = 0; i < iterations; i++) {
+    //             const a = first.second.name;
+    //         }
+    //         const end2 = Date.now();
+    //         console.log(
+    //             `${iterations} iterations after baking:`,
+    //             end2 - start2,
+    //             'ms'
+    //         );
+    //     });
+    // });
 });
