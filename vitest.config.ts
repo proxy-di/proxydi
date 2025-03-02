@@ -17,6 +17,7 @@ export default defineConfig({
                 'vitest.config.ts',
                 'tests/',
                 'src/types.ts',
+                'docs/',
             ],
         },
     },
