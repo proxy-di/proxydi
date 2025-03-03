@@ -8,7 +8,7 @@ export {
     ContainerSettings,
 
     // TODO: I'm not sure if these should be shared
-    PROXYDY_CONTAINER,
+    PROXYDI_CONTAINER,
     DEPENDENCY_ID,
 } from './types';
 export { resolveAll } from './resolveAll';

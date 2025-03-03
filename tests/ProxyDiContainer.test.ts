@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { inject, ProxyDiContainer, injectable, resolveAll } from '../src/index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
-import { DEPENDENCY_ID, PROXYDY_CONTAINER } from '../src/types';
+import { DEPENDENCY_ID, PROXYDI_CONTAINER } from '../src/types';
 import { isInjectionProxy } from '../src/Proxy.utils';
 import { KindomKing } from './mock/King';
 import { KindomQueen } from './mock/Queen';
@@ -165,7 +165,7 @@ describe('ProxyDi', () => {
             expect(first).equals(instance);
             expect(first).is.instanceOf(First);
             expect(first[DEPENDENCY_ID]).is.equals(dependencyId);
-            expect(first[PROXYDY_CONTAINER]).is.equals(container);
+            expect(first[PROXYDI_CONTAINER]).is.equals(container);
         });
 
         it('resolve instance', () => {
@@ -181,7 +181,7 @@ describe('ProxyDi', () => {
             expect(first).equals(returnedInstance);
             expect(first.name).equals("I'm first!");
             expect(first[DEPENDENCY_ID]).is.equals('first');
-            expect(first[PROXYDY_CONTAINER]).is.equals(container);
+            expect(first[PROXYDI_CONTAINER]).is.equals(container);
         });
 
         it('resolve the same instance', () => {
@@ -740,8 +740,6 @@ describe('ProxyDi', () => {
             expect(mary.introduce()).equal(`I'm Mary and this my fiancé, John`);
         });
 
-        
-
         it('Kindom from files', () => {
             const container = new ProxyDiContainer();
 
@@ -750,6 +748,39 @@ describe('ProxyDi', () => {
 
             expect(king.queen.name).equal(`I'm a queen`);
             expect(queen.king.name).equal(`I'm a king`);
+        });
+    });
+
+    describe('2 injectable instance', () => {
+        it('should resolve 2 injectable instances', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+
+            const auto1 = child.resolve(Auto);
+            const auto2 = parent.resolve(Auto);
+
+            expect(auto1).not.equals(auto2);
+        });
+
+        it('should resolve 1 injectable instances after registerInjectables()', () => {
+            const parent = new ProxyDiContainer().registerInjectables();
+            const child = parent.createChildContainer();
+
+            const auto1 = child.resolve(Auto);
+            const auto2 = parent.resolve(Auto);
+
+            expect(auto1).equals(auto2);
+        });
+
+        it('should resolve 2 injectable instances after register()', () => {
+            const parent = new ProxyDiContainer().registerInjectables();
+            const child = parent.createChildContainer();
+
+            child.register(Auto, 'auto');
+            const auto1 = child.resolve(Auto);
+            const auto2 = parent.resolve(Auto);
+
+            expect(auto1).not.equals(auto2);
         });
     });
 

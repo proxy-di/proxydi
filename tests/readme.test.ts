@@ -91,6 +91,18 @@ describe('README', () => {
         expect(actor.play()).equal('Bond... James Bond!');
     });
 
+    it('injectable', () => {
+        @injectable()
+        class GameEngine {
+            start = () => 'Game started';
+        }
+
+        const container = new ProxyDiContainer();
+
+        const gameEngine = container.resolve(GameEngine);
+        expect(gameEngine.start()).equal('Game started');
+    });
+
     it('Kindom', () => {
         @injectable(['Queen'])
         class King {

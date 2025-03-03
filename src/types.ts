@@ -20,7 +20,9 @@ export type IProxyDiContainer = {
 
     register: (dependency: any, dependencyId: DependencyId) => any;
 
-    resolve: <T>(dependencyId: DependencyId) => T & ContainerizedDependency;
+    resolve: <T>(
+        dependencyId: DependencyId | DependencyClass<any>
+    ) => T & ContainerizedDependency;
 
     createChildContainer: () => IProxyDiContainer;
     children: IProxyDiContainer[];
@@ -47,7 +49,7 @@ export const DEPENDENCY_ID = Symbol('DependencyId');
  * This property is present in each dependency instance that was registered in ProxyDiContainer.
  * The property stores a reference to the ProxyDiContainer in which the dependency was registered.
  */
-export const PROXYDY_CONTAINER = Symbol('proxyDiContainer');
+export const PROXYDI_CONTAINER = Symbol('proxyDiContainer');
 
 export type Injections = Record<string | symbol, Injection>;
 export type Dependency = {
@@ -66,7 +68,7 @@ export type ContainerizedDependency = Dependency & {
     /**
      * ProxyDi container in which this instance was registered
      */
-    [PROXYDY_CONTAINER]: IProxyDiContainer;
+    [PROXYDI_CONTAINER]: IProxyDiContainer;
 };
 
 export type ContainerSettings = {
@@ -83,5 +85,5 @@ export const IS_INSTANCE_PROXY = Symbol('isInstanceProxy');
 export type InjectionProxy = {
     [IS_INJECTION_PROXY]: true;
     [INJECTION_OWNER]: ContainerizedDependency;
-    [PROXYDY_CONTAINER]: IProxyDiContainer;
+    [PROXYDI_CONTAINER]: IProxyDiContainer;
 };

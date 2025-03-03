@@ -15,6 +15,7 @@ Core features:
 - Currently under active development, the API may change until version 0.1.0
 
 Eperimemntal features:
+
 - Construtor injections (see unit tests for examples)
 - Matches dependencies by unique identifiers or automatically using class names and property names
 
@@ -242,9 +243,66 @@ In this example, the character activates all its perks, which are registered in 
 
 ### Reference to the container
 
-Here you should be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveAll.html.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance. So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
+Here you should be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveAll.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance. So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
 
 Despite this explanation is a little bit complicated, the example is still simple, the character just activates all its perks.
+
+## Injectable classes
+
+Look at the following example:
+
+```typescript
+@injectable()
+class GameEngine {
+    start = () => console.log('Game started');
+}
+
+const container = new ProxyDiContainer();
+
+const gameEngine = container.resolve(GameEngine);
+gameEngine.start();
+```
+
+```shell
+> Game started
+```
+
+Two things happen here:
+
+1. We use the [@injectable()](https://proxy-di.github.io/proxydi/functions/injectable.html) decorator to mark the class as injectable. This allows us to resolve the dependency without registering it in the container.
+
+2. To resolve the dependency instance, we pass the injectable class itself as the dependency identifier. This is possible because ProxyDi automatically uses the class name as the dependency identifier when none is explicitly provided. As an additional bonus, the `gameEngine` has a type `GameEngine`.
+
+### Implicitly resolving injectable() dependencies
+
+There are a few important nuances about the `@injectable()` decorator to keep in mind. The first is how these dependencies are resolved. Consider this example:
+
+```typescript
+const parent = new ProxyDiContainer();
+const child = parent.createChildContainer();
+
+const engine1 = child.resolve(GameEngine);
+const engine2 = parent.resolve(GameEngine);
+
+engine1 === engine2; // false
+```
+
+Here we create a hierarchy of containers and resolve the same dependency from the child container first and then from the parent container. The result is two different instances of the GameEngine class. This happens because during the first resolution, the child container doesn't find GameEngine in either itself or its parent container, so it creates a new instance and stores it in itself. When the parent container resolves GameEngine, it creates another instance since he knowns nothing about child depenencies
+
+There are two ways to avoid this behavior:
+
+1. Don't use the `@injectable()` decorator and always register dependencies explicitly
+2. Use the `registerInjectables()` method to create instances for all injectable dependencies in the container. In this case every time when you resolve injectable dependency, you will get the same instance:
+
+```typescript
+const parent = new ProxyDiContainer().registerInjectables();
+const child = parent.createChildContainer();
+
+const engine1 = child.resolve(GameEngine);
+const engine2 = parent.resolve(GameEngine);
+
+engine1 === engine2; // true now
+```
 
 ## Rewriting dependencies
 
