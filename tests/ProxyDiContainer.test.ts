@@ -756,20 +756,31 @@ describe('ProxyDi', () => {
             const parent = new ProxyDiContainer();
             const child = parent.createChildContainer();
 
-            const auto1 = child.resolve<Auto>('auto');
-            const auto2 = parent.resolve<Auto>('auto');
+            const auto1 = child.resolve(Auto);
+            const auto2 = parent.resolve(Auto);
 
             expect(auto1).not.equals(auto2);
         });
 
-        it('should resolve 1 injectable instances after resolveInjectables()', () => {
-            const parent = new ProxyDiContainer().resolveInjectables();
+        it('should resolve 1 injectable instances after registerInjectables()', () => {
+            const parent = new ProxyDiContainer().registerInjectables();
             const child = parent.createChildContainer();
 
-            const auto1 = child.resolve<Auto>('auto');
-            const auto2 = parent.resolve<Auto>('auto');
+            const auto1 = child.resolve(Auto);
+            const auto2 = parent.resolve(Auto);
 
             expect(auto1).equals(auto2);
+        });
+
+        it('should resolve 2 injectable instances after register()', () => {
+            const parent = new ProxyDiContainer().registerInjectables();
+            const child = parent.createChildContainer();
+
+            child.register(Auto, 'auto');
+            const auto1 = child.resolve(Auto);
+            const auto2 = parent.resolve(Auto);
+
+            expect(auto1).not.equals(auto2);
         });
     });
 

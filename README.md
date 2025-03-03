@@ -9,15 +9,10 @@ A typed hierarchical DI container that resolves circular dependencies via Proxy.
 Core features:
 
 - Uses Stage 3 decorators, supported in TypeScript 5.x ([examples repository](https://github.com/proxy-di/node-ts-examples)) and Babel via babel-plugin-proposal-decorators ([examples repository](https://github.com/proxy-di/node-babel-examples))
-- Automatically resolves circular dependencies with no performance impact
+- Automatically resolves circular dependencies with no persormance impact
 - Resolves dependencies in the context of a particular container
-- Supports hierarchical containers with the ability to resolve dependencies in both directions
-- Currently under active development, the API may change until version 0.1.0
-
-Experimental features:
-
-- Construtor injections (see unit tests for examples)
 - Matches dependencies by unique identifiers or automatically using class names and property names
+- Currently under active development, the API may change until version 0.1.0
 
 ## Quick start
 
@@ -83,7 +78,7 @@ class Actor {
 ```
 
 2. Next, create the [ProxyDiContainer](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html)
-   and fill it with dependencies using [register()](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#register) method. For example, let's define an agent 007 role and prepare our first container:
+   and fill it with dependencies using [register()](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#register) metod. For example, let's define an agent 007 role and prepare our first container:
 
 ```typescript
 class Agent007 implements Character {
@@ -129,7 +124,7 @@ console.log(actor.play());
 > 007, I have a new mission for you
 ```
 
-In this example, we changed the behavior of the actor by changing the role dependency in the ProxyDi container. This is exactly the goal of the [Dependency inversion principle](https://en.wikipedia.org/wiki/Dependency_inversion_principle) in the SOLID approach to software design. Continuing our metaphor, the actor can play any role, but he is not the one who decides which role he will play. This is a film director's decision, and here we just cosplay him by setting up our containers.
+In this example, we changed the behavior of the actor by changing the role dependency in the ProxyDi container. This is exactly the goal of the [Dependency inversion principle](https://en.wikipedia.org/wiki/Dependency_inversion_principle) in SOLID approach to design software. Continuing our metaphor, the actor can play any role, but he is not the one who decides which role he will play. This is a film director's decision, and here we just cosplay him by setting up our containers.
 
 > So, ProxyDi is just a tool to link dependencies, allowing them to freely communicate with each other without worrying about which specific dependency they're dealing with. And nothing more.
 
@@ -179,7 +174,7 @@ console.log(actor.play());
 
 In traditional DI containers, this scene would be tricky to shoot - the Director calls Actor's methods while Actor simultaneously needs Director's guidance.
 
-But take a look, our approach is still the same - we just link dependencies with @inject and use them freely without any worries. ProxyDi handles this tricky issue as elegantly as possible. It does this using JavaScript Proxies, more about Proxies and their impact on performance [later](#injection-proxy-performance).
+But take a look, our approach is still the same - we just link dependencies by @inject and use them freely without any worries. ProxyDi handles this tricky issue as elegantly as is even possible. It does this using JavaScript Proxies, more about Proxies and theirs impact on perfomance [later](#injection-proxy-performance).
 
 ## Hierarchy of containers
 
@@ -187,7 +182,7 @@ Another tricky part of DI containers is the ability to create multiple instances
 
 Instead, it suggests you to use a hierarchy of containers by using [createChildContainer()](https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#createchildcontainer) method. Child container inherits all parent settings and can resolve exactly the same dependencies as their parent (but parent container does not have access to dependencies registered in its children).
 
-For example, imagine you are working on a game level, there are many characters on this level, and each character could have many perks.
+For example, imagine you are working on a game level, there are many characters on this level, each character could have many perks.
 
 With ProxyDi we can present all these stuff in a hierarchy of containers. The most top container holds information about game level, the most bottom ones hold information about perks:
 
@@ -206,7 +201,7 @@ This is not how I propose to design games, ECS pattern does it better, but the g
 
 ### Resolving dependencies from parents
 
-As a bonus, each bottom level dependency is free to use any dependency from the top just as if they were registered in its own container:
+As a bonus, each bottom level dependency is free to use any dependency from the top:
 
 ```typescript
 class UnderwaterShield {
@@ -220,9 +215,9 @@ class UnderwaterShield {
 }
 ```
 
-In this example, the shield perk increases character health if it is underwater. The perk receives both level and character using the @inject() decorator, the same way as we have seen so far.
+In this example, the perk checks if the character is underwater and if so, increases its health. To do its job, perk has access to the character and the level, which are registered in the parent containers.
 
-### Resolving dependencies from children
+## Resolving dependencies from children
 
 Backward bonus of containers hierarchy, each top level dependency is free to use all dependency from the bottom:
 
@@ -239,13 +234,70 @@ class Character {
 }
 ```
 
-In this example, the character activates all its perks, which are registered in all children containers. The way it do this job need a little bit more explanation.
+In this example, the character is able activate all its perks. To do its job, the character has access to all perks, which are registered in all children containers.
 
 ### Reference to the container
 
-Here you should be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveAll.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance in property with name [PROXYDI_CONTAINER](https://proxy-di.github.io/proxydi/variables/PROXYDI_CONTAINER.html). So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
+Reading last example, you may be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveall.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance. So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
 
-Despite this explanation is a little bit complicated, the example is still simple, the character just activates all its perks.
+Despite this explanation is a little bit complicated, the example is simple, the character just acts all its perks.
+
+## Injectable classes
+
+Look at the following example:
+
+```typescript
+@injectable()
+class GameEngine {
+    start = () => console.log('Game started');
+}
+
+const container = new ProxyDiContainer();
+
+const gameEngine = container.resolve(GameEngine);
+gameEngine.start();
+```
+
+```shell
+> Game started
+```
+
+Two things happen here:
+
+1. We use the [@injectable()](https://proxy-di.github.io/proxydi/functions/injectable.html) decorator to mark the class as injectable. This allows us to resolve the dependency without registering it in the container.
+
+2. To resolve the dependency instance, we pass the injectable class itself as the dependency identifier. This is possible because ProxyDi automatically uses the class name as the dependency identifier when none is explicitly provided. As an additional bonus, the `gameEngine` has a type `GameEngine`.
+
+### Implicitly resolving injectable() dependencies
+
+There are a few important nuances about the `@injectable()` decorator to keep in mind. The first is how these dependencies are resolved. Consider this example:
+
+```typescript
+const parent = new ProxyDiContainer();
+const child = parent.createChildContainer();
+
+const engine1 = child.resolve(GameEngine);
+const engine2 = parent.resolve(GameEngine);
+
+engine1 === engine2; // false
+```
+
+Here we create a hierarchy of containers and resolve the same dependency from the child container first and then from the parent container. The result is two different instances of the GameEngine class. This happens because during the first resolution, the child container doesn't find GameEngine in either itself or its parent container, so it creates a new instance and stores it in itself. When the parent container resolves GameEngine, it creates another instance since he knowns nothing about child depenencies
+
+There are two ways to avoid this behavior:
+
+1. Don't use the `@injectable()` decorator and always register dependencies explicitly
+2. Use the `registerInjectables()` method to create instances for all injectable dependencies in the container. In this case every time when you resolve injectable dependency, you will get the same instance:
+
+```typescript
+const parent = new ProxyDiContainer().registerInjectables();
+const child = parent.createChildContainer();
+
+const engine1 = child.resolve(GameEngine);
+const engine2 = parent.resolve(GameEngine);
+
+engine1 === engine2; // true now
+```
 
 ## Rewriting dependencies
 
@@ -281,19 +333,19 @@ There is a container method [bakeInjections()](https://proxy-di.github.io/proxyd
 
 Therefore, after the container has been baked, the performance impact becomes zero. So, you could use this method even for containers with default settings, ensuring that your application doesn't have to wait for the first use of each injection before they are baked.
 
-To be continued...
-
 ## Motivation
 
 The world and software changes, they become more complex over time. But the main imperative in software development stays the same - managing the complexity. Despite the tendency that software is written more often by artificial intelligence than humans, complexity stays complexity. The less complex conceptions any kind of intelligence should operate, the more efficient it will be.
 
-The main goal of ProxyDi is to decrease complexity in the very small field of connecting different entities of software code between each other, no matter by whom this code was written. This is my attempt to make the linking of dependencies as transparent and simple as possible for developers.
+The main goal of ProxyDi is to decrease complexity in the very small field of connecting different entities of software code between each other, no matter by whom this code was written. I'm imagining the world where any entity is able to communicate with any other entity without any worries about how it happens. ProxyDi is my attempt to find the way to this world.
 
-Also, I'm tired of moving this-like code from one project to another. I hope that ProxyDi will be a good enough solution for this problem not only for me. To be honest, this is the 4th attempt to create an "ideal" DI container and my 1st that uses Stage 3 decorators. I hope, this one will be the last one. With your help :) For TS/JS technology stack, of course!
+Also, I'm tired of moving this-like code from one project to another. I hope that ProxyDi will be a good solution for this problem not only for me. This is the 4th attempt to create an "ideal" DI container and my 1st that uses Stage 3 decorators. I hope, this one will be the last. With your help :) For TS/JS technology stack, of course!
+
+To be continued...
 
 ## Contributing
 
-Any reviews, comments, ideas, issues, and pull requests are welcome. Contribution documentation is not ready yet but is planned. Feel free to contribute even now though! :)
+Any ideas, issues, and pull requests are welcome. Contribution documentation is not ready yet but is planned. Feel free to contribute even now though! :)
 
 ## License
 

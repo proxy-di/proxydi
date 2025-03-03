@@ -237,10 +237,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 
     /**
-     * Resolves all injectable classes and registers them in this container.
-     * @returns this container
+     * Creates instances for all injectable classes and registers them in this container.
+     * @returns This container to allow use along with constructor.
      */
-    resolveInjectables() {
+    registerInjectables() {
         for (const [dependencyId, InjectableClass] of Object.entries(
             injectableClasses
         )) {
