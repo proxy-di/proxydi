@@ -14,7 +14,8 @@ Core features:
 - Supports hierarchical containers with the ability to resolve dependencies in both directions
 - Currently under active development, the API may change until version 0.1.0
 
-Eperimemntal features:
+Experimental features:
+
 - Construtor injections (see unit tests for examples)
 - Matches dependencies by unique identifiers or automatically using class names and property names
 
@@ -242,7 +243,7 @@ In this example, the character activates all its perks, which are registered in 
 
 ### Reference to the container
 
-Here you should be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveAll.html.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance. So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
+Here you should be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveAll.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance in property with name [PROXYDI_CONTAINER](https://proxy-di.github.io/proxydi/variables/PROXYDI_CONTAINER.html). So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
 
 Despite this explanation is a little bit complicated, the example is still simple, the character just activates all its perks.
 

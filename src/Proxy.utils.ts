@@ -5,18 +5,18 @@ import {
     INJECTION_OWNER,
     Injection,
     IProxyDiContainer,
-    PROXYDY_CONTAINER,
+    PROXYDI_CONTAINER,
     IS_INSTANCE_PROXY,
 } from './types';
 
 class InjectionProxy implements IInjectionProxy {
     [IS_INJECTION_PROXY]: true = true;
     readonly [INJECTION_OWNER]: ContainerizedDependency;
-    readonly [PROXYDY_CONTAINER]: IProxyDiContainer;
+    readonly [PROXYDI_CONTAINER]: IProxyDiContainer;
 
     constructor(onwer: ContainerizedDependency, container: IProxyDiContainer) {
         this[INJECTION_OWNER] = onwer;
-        this[PROXYDY_CONTAINER] = container;
+        this[PROXYDI_CONTAINER] = container;
     }
 }
 

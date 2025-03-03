@@ -3,7 +3,7 @@ import {
     ContainerizedDependency,
     DependencyId,
     IProxyDiContainer,
-    PROXYDY_CONTAINER,
+    PROXYDI_CONTAINER,
 } from './types';
 
 /**
@@ -28,7 +28,7 @@ export function resolveAll<T>(
         return resolveAll(instance, id);
     }
 
-    const container = (instance as ContainerizedDependency)[PROXYDY_CONTAINER];
+    const container = (instance as ContainerizedDependency)[PROXYDI_CONTAINER];
     if (!container) {
         throw new Error('Instance is not registered in any container');
     }

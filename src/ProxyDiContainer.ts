@@ -4,7 +4,7 @@ import {
     IProxyDiContainer as IProxyDiContainer,
     ContainerizedDependency as ContainerizedDependency,
     DependencyClass,
-    PROXYDY_CONTAINER,
+    PROXYDI_CONTAINER,
     Injections,
 } from './types';
 import {
@@ -120,7 +120,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
 
         if (typeof dependencyInstance === 'object') {
-            dependencyInstance[PROXYDY_CONTAINER] = this;
+            dependencyInstance[PROXYDI_CONTAINER] = this;
         }
 
         this.registerImpl(dependencyInstance, dependencyId);
@@ -203,7 +203,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         const instance = this.findDependency<T>(dependency);
         if (instance) {
             if (
-                instance[PROXYDY_CONTAINER] !== this &&
+                instance[PROXYDI_CONTAINER] !== this &&
                 typeof instance === 'object' &&
                 this.settings.resolveInContainerContext
             ) {
@@ -234,6 +234,19 @@ export class ProxyDiContainer implements IProxyDiContainer {
             );
             injection.set(injectionsOwner, dependencyProxy);
         });
+    }
+
+    /**
+     * Resolves all injectable classes and registers them in this container.
+     * @returns this container
+     */
+    resolveInjectables() {
+        for (const [dependencyId, InjectableClass] of Object.entries(
+            injectableClasses
+        )) {
+            this.register(InjectableClass, dependencyId);
+        }
+        return this;
     }
 
     /**
