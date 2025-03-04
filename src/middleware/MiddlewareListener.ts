@@ -10,6 +10,9 @@ export interface MiddlewareListenerEvent {
     remove: (container: ProxyDiContainer, dependencyId: DependencyId) => void;
 }
 
+/**
+ * Describe the middleware that able to listen to the registering of a dependency in containers hierarchy
+ */
 export interface MiddlewareRegisteringListener {
     onRegister(
         container: ProxyDiContainer,
@@ -18,6 +21,9 @@ export interface MiddlewareRegisteringListener {
     ): void;
 }
 
+/**
+ * Describe the middleware that able to listen to the removing of a dependency in containers hierarchy
+ */
 export interface MiddlewareRemovingListener {
     onRemove(container: ProxyDiContainer, dependencyId: DependencyId): void;
 }

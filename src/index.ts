@@ -3,6 +3,10 @@ export { ProxyDiContainer } from './ProxyDiContainer';
 export { injectable } from './injectable';
 export { middleware } from './middleware/middleware';
 export {
+    MiddlewareRegisteringListener,
+    MiddlewareRemovingListener,
+} from './middleware/MiddlewareListener';
+export {
     Injection,
     DependencyId,
     DependencyClass,
