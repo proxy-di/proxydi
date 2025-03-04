@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { inject, ProxyDiContainer, injectable, resolveAll } from '../src/index';
+import {
+    inject,
+    ProxyDiContainer,
+    injectable,
+    resolveAll,
+    middleware,
+} from '../src/index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
-import { DEPENDENCY_ID, PROXYDI_CONTAINER } from '../src/types';
+import { DEPENDENCY_ID, DependencyId, PROXYDI_CONTAINER } from '../src/types';
 import { isInjectionProxy } from '../src/Proxy.utils';
 import { KindomKing } from './mock/King';
 import { KindomQueen } from './mock/Queen';
@@ -781,6 +787,114 @@ describe('ProxyDi', () => {
             const auto2 = parent.resolve(Auto);
 
             expect(auto1).not.equals(auto2);
+        });
+    });
+
+    describe('middleware', () => {
+        @injectable()
+        @middleware()
+        class TestMiddleware {
+            known: DependencyId[] = [];
+
+            onRegister = (
+                _container: ProxyDiContainer,
+                dependencyId: DependencyId,
+                _dependency: any
+            ) => {
+                this.known.push(dependencyId);
+            };
+
+            onRemove = (
+                _container: ProxyDiContainer,
+                dependencyId: DependencyId
+            ) => {
+                const index = this.known.indexOf(dependencyId);
+                if (index !== -1) {
+                    this.known.splice(index, 1);
+                }
+            };
+        }
+
+        it('no any kno wn registered dependencies', () => {
+            const container = new ProxyDiContainer();
+            const middleware = container.resolve(TestMiddleware);
+
+            expect(middleware.known.length).equals(1);
+            expect(middleware.known[0]).equals('TestMiddleware');
+        });
+
+        it('should known registered dependencies', () => {
+            const container = new ProxyDiContainer();
+            const middleware = container.resolve(TestMiddleware);
+            container.register(First, 'first');
+
+            expect(middleware.known.length).equals(2);
+            expect(middleware.known[0]).equals('TestMiddleware');
+            expect(middleware.known[1]).equals('first');
+        });
+
+        it('should known registered in child dependencies', () => {
+            const container = new ProxyDiContainer();
+            const middleware = container.resolve(TestMiddleware);
+
+            const child = container.createChildContainer();
+            child.register(First, 'first');
+
+            expect(middleware.known.length).equals(2);
+            expect(middleware.known[0]).equals('TestMiddleware');
+            expect(middleware.known[1]).equals('first');
+        });
+
+        it('should forgot removed dependencies', () => {
+            const container = new ProxyDiContainer();
+            const middleware = container.resolve(TestMiddleware);
+            container.register(First, 'first');
+            container.remove('first');
+
+            expect(middleware.known.length).equals(1);
+            expect(middleware.known[0]).equals('TestMiddleware');
+        });
+
+        it('should forgot removed dependencies in childs', () => {
+            const container = new ProxyDiContainer();
+            const middleware = container.resolve(TestMiddleware);
+
+            const child = container.createChildContainer();
+            child.register(First, 'first');
+            child.remove('first');
+
+            expect(middleware.known.length).equals(1);
+            expect(middleware.known[0]).equals('TestMiddleware');
+        });
+
+        it('does not know registered dependencies after removing', () => {
+            const container = new ProxyDiContainer();
+            const middleware = container.resolve(TestMiddleware);
+
+            container.remove('TestMiddleware');
+            container.register(First, 'first');
+
+            expect(middleware.known.length).equals(1);
+            expect(middleware.known[0]).equals('TestMiddleware');
+        });
+
+        it('@middleware should decorate classes', () => {
+            const fieldMiddleware = middleware as any;
+            expect(() => {
+                class Test {
+                    @fieldMiddleware()
+                    field: string;
+                }
+            }).toThrowError('@middleware decorator should decorate classes');
+        });
+
+        it('@middleware should throw error for the same name', () => {
+            expect(() => {
+                @middleware()
+                class TestMiddleware {
+                    field: string;
+                }
+            }).toThrowError('ProxyDi has already regisered middleware');
         });
     });
 

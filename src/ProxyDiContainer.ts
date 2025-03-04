@@ -20,6 +20,8 @@ import {
 import { DEFAULT_SETTINGS } from './presets';
 import { makeInjectionProxy, makeDependencyProxy } from './Proxy.utils';
 import { makeConstructorDependencyProxy } from './proxy.constuctor';
+import { middlewaresClasses } from './middleware/middleware';
+import { MiddlewareListener } from './middleware/MiddlewareListener';
 
 /**
  * A dependency injection container
@@ -60,6 +62,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
      */
     public readonly settings: Required<ContainerSettings>;
 
+    private middlewareListener: MiddlewareListener;
+
     /**
      * Creates a new instance of ProxyDiContainer.
      * @param settings Optional container settings to override defaults.
@@ -67,6 +71,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
      */
     constructor(settings?: ContainerSettings, parent?: ProxyDiContainer) {
         this.id = ProxyDiContainer.idCounter++;
+
+        this.middlewareListener = new MiddlewareListener(
+            parent?.middlewareListener
+        );
 
         if (parent) {
             this.parent = parent;
@@ -102,30 +110,38 @@ export class ProxyDiContainer implements IProxyDiContainer {
             }
         }
 
-        let dependencyInstance: any;
+        let instance: any;
         const isClass = typeof dependency === 'function';
 
         if (isClass) {
-            dependencyInstance = this.createInstance(dependency, dependencyId);
+            instance = this.createInstance(dependency, dependencyId);
         } else {
-            dependencyInstance = dependency;
-            if (
-                !(typeof dependencyInstance === 'object') &&
-                !this.settings.allowRegisterAnything
-            ) {
-                throw new Error(
-                    `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${dependencyInstance}`
-                );
-            }
+            instance = dependency;
         }
 
-        if (typeof dependencyInstance === 'object') {
-            dependencyInstance[PROXYDI_CONTAINER] = this;
+        const isObject = typeof instance === 'object';
+        if (!isObject && !this.settings.allowRegisterAnything) {
+            throw new Error(
+                `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${instance}`
+            );
         }
 
-        this.registerImpl(dependencyInstance, dependencyId);
+        if (isObject) {
+            instance[PROXYDI_CONTAINER] = this;
+            instance[DEPENDENCY_ID] = dependencyId;
+        }
 
-        return dependencyInstance;
+        this.injectDependenciesTo(instance);
+        this.dependencies[dependencyId] = instance;
+
+        const constructorName = instance.constructor?.name;
+        if (constructorName && middlewaresClasses[constructorName]) {
+            this.middlewareListener.add(instance);
+        }
+
+        this.middlewareListener.onRegister(this, dependencyId, instance);
+
+        return instance;
     }
 
     private createInstance(
@@ -140,21 +156,6 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
 
         return new Dependency(...params);
-    }
-
-    /**
-     * Internal method that implements registeration of dependency and prepare it for injection.
-     * @param dependencyId The unique identifier of the dependency.
-     * @param dependency The dependency instance.
-     */
-    private registerImpl(dependency: any, dependencyId: DependencyId) {
-        this.injectDependenciesTo(dependency);
-
-        if (typeof dependency === 'object') {
-            (dependency as any)[DEPENDENCY_ID] = dependencyId;
-        }
-
-        this.dependencies[dependencyId] = dependency;
     }
 
     /**
@@ -288,6 +289,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
             : dependencyOrId;
         const dependency = this.dependencies[id];
         if (dependency) {
+            const constructorName = dependency.constructor?.name;
+            if (constructorName && middlewaresClasses[constructorName]) {
+                this.middlewareListener.remove(dependency);
+            }
+
             const dependencyInjects: Injections = dependency[INJECTIONS]
                 ? dependency[INJECTIONS]
                 : {};
@@ -297,6 +303,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
             delete (dependency as any)[DEPENDENCY_ID];
 
             delete this.dependencies[id];
+
+            this.middlewareListener.onRemove(this, id);
         }
     }
 
