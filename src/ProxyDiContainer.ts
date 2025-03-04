@@ -102,30 +102,36 @@ export class ProxyDiContainer implements IProxyDiContainer {
             }
         }
 
-        let dependencyInstance: any;
+        let instance: any;
         const isClass = typeof dependency === 'function';
 
         if (isClass) {
-            dependencyInstance = this.createInstance(dependency, dependencyId);
+            instance = this.createInstance(dependency, dependencyId);
         } else {
-            dependencyInstance = dependency;
-            if (
-                !(typeof dependencyInstance === 'object') &&
-                !this.settings.allowRegisterAnything
-            ) {
-                throw new Error(
-                    `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${dependencyInstance}`
-                );
-            }
+            instance = dependency;
         }
 
-        if (typeof dependencyInstance === 'object') {
-            dependencyInstance[PROXYDI_CONTAINER] = this;
+        const isObject = typeof instance === 'object';
+        if (!isObject && !this.settings.allowRegisterAnything) {
+            throw new Error(
+                `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${instance}`
+            );
         }
 
-        this.registerImpl(dependencyInstance, dependencyId);
+        if (isObject) {
+            instance[PROXYDI_CONTAINER] = this;
+            instance[DEPENDENCY_ID] = dependencyId;
+        }
 
-        return dependencyInstance;
+        this.injectDependenciesTo(instance);
+        this.dependencies[dependencyId] = instance;
+
+
+        return instance;
+    }
+
+    private onRegister(dependencyId: DependencyId, dependency: any) {
+
     }
 
     private createInstance(
@@ -140,21 +146,6 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
 
         return new Dependency(...params);
-    }
-
-    /**
-     * Internal method that implements registeration of dependency and prepare it for injection.
-     * @param dependencyId The unique identifier of the dependency.
-     * @param dependency The dependency instance.
-     */
-    private registerImpl(dependency: any, dependencyId: DependencyId) {
-        this.injectDependenciesTo(dependency);
-
-        if (typeof dependency === 'object') {
-            (dependency as any)[DEPENDENCY_ID] = dependencyId;
-        }
-
-        this.dependencies[dependencyId] = dependency;
     }
 
     /**
