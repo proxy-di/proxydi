@@ -10,6 +10,18 @@ export interface MiddlewareListenerEvent {
     remove: (container: ProxyDiContainer, dependencyId: DependencyId) => void;
 }
 
+export interface MiddlewareRegisteringListener {
+    onRegister(
+        container: ProxyDiContainer,
+        dependencyId: DependencyId,
+        dependency: any
+    ): void;
+}
+
+export interface MiddlewareRemovingListener {
+    onRemove(container: ProxyDiContainer, dependencyId: DependencyId): void;
+}
+
 export class MiddlewareListener {
     private listeners: {
         [K in keyof MiddlewareListenerEvent]: MiddlewareListenerEvent[K][];
@@ -17,9 +29,31 @@ export class MiddlewareListener {
         register: [],
         remove: [],
     };
-    constructor() {}
 
-    on<K extends keyof MiddlewareListenerEvent>(
+    constructor(private parent?: MiddlewareListener) {}
+
+    add(middleware: any) {
+        if (isRegistingMiddleware(middleware)) {
+            middleware.onRegister && this.on('register', middleware.onRegister);
+        }
+
+        if (isRemovingMiddleware(middleware)) {
+            middleware.onRemove && this.on('remove', middleware.onRemove);
+        }
+    }
+
+    remove(middleware: any) {
+        if (isRegistingMiddleware(middleware)) {
+            middleware.onRegister &&
+                this.off('register', middleware.onRegister);
+        }
+
+        if (isRemovingMiddleware(middleware)) {
+            middleware.onRemove && this.off('remove', middleware.onRemove);
+        }
+    }
+
+    private on<K extends keyof MiddlewareListenerEvent>(
         event: K,
         listener: MiddlewareListenerEvent[K]
     ) {
@@ -34,15 +68,18 @@ export class MiddlewareListener {
         this.listeners.register.forEach((listener) =>
             listener(container, dependencyId, dependency)
         );
+
+        this.parent?.onRegister(container, dependencyId, dependency);
     }
 
     onRemove(container: ProxyDiContainer, dependencyId: DependencyId) {
         this.listeners.remove.forEach((listener) =>
             listener(container, dependencyId)
         );
+        this.parent?.onRemove(container, dependencyId);
     }
 
-    off<K extends keyof MiddlewareListenerEvent>(
+    private off<K extends keyof MiddlewareListenerEvent>(
         event: K,
         listener: MiddlewareListenerEvent[K]
     ) {
@@ -51,4 +88,16 @@ export class MiddlewareListener {
             this.listeners[event].splice(index, 1);
         }
     }
+}
+
+function isRegistingMiddleware(
+    middleware: any | MiddlewareRegisteringListener
+): middleware is MiddlewareRegisteringListener {
+    return middleware.onRegister;
+}
+
+function isRemovingMiddleware(
+    middleware: any | MiddlewareRemovingListener
+): middleware is MiddlewareRemovingListener {
+    return middleware.onRemove;
 }

@@ -17,6 +17,7 @@ Core features:
 Eperimemntal features:
 
 - Construtor injections (see unit tests for examples)
+- Middleware listeners (see unit tests for examples)
 - Matches dependencies by unique identifiers or automatically using class names and property names
 
 ## Quick start

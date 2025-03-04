@@ -1,6 +1,7 @@
 export { inject } from './inject';
 export { ProxyDiContainer } from './ProxyDiContainer';
 export { injectable } from './injectable';
+export { middleware } from './middleware/middleware';
 export {
     Injection,
     DependencyId,

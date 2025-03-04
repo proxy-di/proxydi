@@ -20,6 +20,8 @@ import {
 import { DEFAULT_SETTINGS } from './presets';
 import { makeInjectionProxy, makeDependencyProxy } from './Proxy.utils';
 import { makeConstructorDependencyProxy } from './proxy.constuctor';
+import { middlewaresClasses } from './middleware/middleware';
+import { MiddlewareListener } from './middleware/MiddlewareListener';
 
 /**
  * A dependency injection container
@@ -60,6 +62,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
      */
     public readonly settings: Required<ContainerSettings>;
 
+    private middlewareListener: MiddlewareListener;
+
     /**
      * Creates a new instance of ProxyDiContainer.
      * @param settings Optional container settings to override defaults.
@@ -67,6 +71,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
      */
     constructor(settings?: ContainerSettings, parent?: ProxyDiContainer) {
         this.id = ProxyDiContainer.idCounter++;
+
+        this.middlewareListener = new MiddlewareListener(
+            parent?.middlewareListener
+        );
 
         if (parent) {
             this.parent = parent;
@@ -126,12 +134,14 @@ export class ProxyDiContainer implements IProxyDiContainer {
         this.injectDependenciesTo(instance);
         this.dependencies[dependencyId] = instance;
 
+        const constructorName = instance.constructor?.name;
+        if (constructorName && middlewaresClasses[constructorName]) {
+            this.middlewareListener.add(instance);
+        }
+
+        this.middlewareListener.onRegister(this, dependencyId, instance);
 
         return instance;
-    }
-
-    private onRegister(dependencyId: DependencyId, dependency: any) {
-
     }
 
     private createInstance(
@@ -279,6 +289,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
             : dependencyOrId;
         const dependency = this.dependencies[id];
         if (dependency) {
+            const constructorName = dependency.constructor?.name;
+            if (constructorName && middlewaresClasses[constructorName]) {
+                this.middlewareListener.remove(dependency);
+            }
+
             const dependencyInjects: Injections = dependency[INJECTIONS]
                 ? dependency[INJECTIONS]
                 : {};
@@ -288,6 +303,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
             delete (dependency as any)[DEPENDENCY_ID];
 
             delete this.dependencies[id];
+
+            this.middlewareListener.onRemove(this, id);
         }
     }
 

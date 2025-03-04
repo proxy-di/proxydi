@@ -5,7 +5,7 @@ export const middlewaresClasses: Record<
     DependencyClass<any>
 > = {};
 
-export function injectable(): any {
+export function middleware(): any {
     return function (
         value: DependencyClass<any>,
         context: ClassDecoratorContext
