@@ -95,17 +95,28 @@ export class ProxyDiContainer implements IProxyDiContainer {
      */
     register<T>(
         DependencyClass: DependencyClass<T>,
-        dependencyId: DependencyId
+        dependencyId?: DependencyId
     ): T & ContainerizedDependency;
     register<T>(
         dependency: T extends new (...args: any[]) => any ? never : T,
         dependencyId: DependencyId
     ): T & ContainerizedDependency;
-    register(dependency: any, dependencyId: DependencyId): any {
-        if (this.dependencies[dependencyId]) {
+    register(dependency: any, dependecyId: DependencyId): any {
+        let id = dependecyId;
+        if (!id) {
+            if (typeof dependency === 'function') {
+                try {
+                    id = findInjectableId(dependency);
+                } catch {
+                    id = dependency.name;
+                }
+            }
+        }
+
+        if (this.dependencies[id]) {
             if (!this.settings.allowRewriteDependencies) {
                 throw new Error(
-                    `ProxyDi already has dependency for ${String(dependencyId)}`
+                    `ProxyDi already has dependency for ${String(id)}`
                 );
             }
         }
@@ -114,7 +125,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         const isClass = typeof dependency === 'function';
 
         if (isClass) {
-            instance = this.createInstance(dependency, dependencyId);
+            instance = this.createInstance(dependency, id);
         } else {
             instance = dependency;
         }
@@ -128,18 +139,18 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
         if (isObject) {
             instance[PROXYDI_CONTAINER] = this;
-            instance[DEPENDENCY_ID] = dependencyId;
+            instance[DEPENDENCY_ID] = id;
         }
 
         this.injectDependenciesTo(instance);
-        this.dependencies[dependencyId] = instance;
+        this.dependencies[id] = instance;
 
         const constructorName = instance.constructor?.name;
         if (constructorName && middlewaresClasses[constructorName]) {
             this.middlewareListener.add(instance);
         }
 
-        this.middlewareListener.onRegister(this, dependencyId, instance);
+        this.middlewareListener.onRegister(this, id, instance);
 
         return instance;
     }
@@ -186,7 +197,13 @@ export class ProxyDiContainer implements IProxyDiContainer {
         dependency: DependencyId | DependencyClass<any>
     ): T & ContainerizedDependency {
         if (typeof dependency === 'function') {
-            const id = findInjectableId(dependency);
+            let id: DependencyId;
+            try {
+                id = findInjectableId(dependency);
+            } catch {
+                id = dependency.name;
+            }
+
             return this.resolve(id);
         }
 
@@ -304,7 +321,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
             delete this.dependencies[id];
 
-            this.middlewareListener.onRemove(this, id);
+            this.middlewareListener.onRemove(this, id, dependency);
         }
     }
 
