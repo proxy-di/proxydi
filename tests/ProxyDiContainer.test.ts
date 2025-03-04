@@ -571,8 +571,19 @@ describe('ProxyDi', () => {
             const container = new ProxyDiContainer();
 
             expect(() => container.resolve(First)).toThrowError(
-                'Class is not @injectable'
+                "Can't resolve unknown dependency"
             );
+        });
+
+        it('resolve class without id registration', () => {
+            const container = new ProxyDiContainer();
+            const instance = container.register(First);
+
+            const first = container.resolve(First);
+            expect(first).equals(instance);
+            expect(first).is.instanceOf(First);
+            expect(first[DEPENDENCY_ID]).is.equals('First');
+            expect(first[PROXYDI_CONTAINER]).is.equals(container);
         });
     });
 

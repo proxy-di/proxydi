@@ -7,7 +7,11 @@ export interface MiddlewareListenerEvent {
         dependencyId: DependencyId,
         dependency: any
     ) => void;
-    remove: (container: ProxyDiContainer, dependencyId: DependencyId) => void;
+    remove: (
+        container: ProxyDiContainer,
+        dependencyId: DependencyId,
+        dependency: any
+    ) => void;
 }
 
 /**
@@ -25,7 +29,11 @@ export interface MiddlewareRegisteringListener {
  * Describe the middleware that able to listen to the removing of a dependency in containers hierarchy
  */
 export interface MiddlewareRemovingListener {
-    onRemove(container: ProxyDiContainer, dependencyId: DependencyId): void;
+    onRemove(
+        container: ProxyDiContainer,
+        dependencyId: DependencyId,
+        dependency: any
+    ): void;
 }
 
 export class MiddlewareListener {
@@ -33,6 +41,7 @@ export class MiddlewareListener {
         [K in keyof MiddlewareListenerEvent]: MiddlewareListenerEvent[K][];
     } = {
         register: [],
+
         remove: [],
     };
 
@@ -78,11 +87,15 @@ export class MiddlewareListener {
         this.parent?.onRegister(container, dependencyId, dependency);
     }
 
-    onRemove(container: ProxyDiContainer, dependencyId: DependencyId) {
+    onRemove(
+        container: ProxyDiContainer,
+        dependencyId: DependencyId,
+        dependency: any
+    ) {
         this.listeners.remove.forEach((listener) =>
-            listener(container, dependencyId)
+            listener(container, dependencyId, dependency)
         );
-        this.parent?.onRemove(container, dependencyId);
+        this.parent?.onRemove(container, dependencyId, dependency);
     }
 
     private off<K extends keyof MiddlewareListenerEvent>(

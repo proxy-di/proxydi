@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [[0.0.13](https://www.npmjs.com/package/proxydi/v/0.0.13)] - 2025-03-04
+
+### Added
+
+- inject, resolve register by class [#15](https://github.com/proxy-di/proxydi/pull/15)
+
+### Changed
+
+- remove event requires dependency
+
 ## [[0.0.12](https://www.npmjs.com/package/proxydi/v/0.0.12)] - 2025-03-04
 
 ### Added

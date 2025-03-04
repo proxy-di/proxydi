@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { inject } from '../src/index';
+import { describe, it, expect, should } from 'vitest';
+import { inject, injectable, ProxyDiContainer } from '../src/index';
 import { Injection, INJECTIONS } from '../src/types';
 
 class Empty {
@@ -63,5 +63,22 @@ describe('inject', () => {
             @anyInject()
             class Test {}
         }).toThrowError('@inject decorator should decorate fields');
+    });
+
+    it('should inject via injectable', () => {
+        @injectable()
+        class Injectable {
+            name = "I'm injectable!";
+        }
+
+        class Injected {
+            @inject(Injectable) injectable: Injectable;
+        }
+
+        const container = new ProxyDiContainer();
+        const injected = container.register(Injected, 'injected');
+
+        expect(injected.injectable).is.not.undefined;
+        expect(injected.injectable.name).equal("I'm injectable!");
     });
 });

@@ -1,4 +1,5 @@
-import { Injection, INJECTIONS, DependencyId } from './types';
+import { findInjectableId } from './injectable';
+import { Injection, INJECTIONS, DependencyId, DependencyClass } from './types';
 
 /**
  * Registers an injection for dependency injection.
@@ -8,10 +9,14 @@ import { Injection, INJECTIONS, DependencyId } from './types';
  *
  * The decorated field will receive its dependency from the same container as the injection owner.
  */
-export const inject = (dependencyId?: DependencyId) => {
+export const inject = (dependencyId?: DependencyId | DependencyClass<any>) => {
     return function (_value: unknown, context: ClassFieldDecoratorContext) {
         if (context?.kind === 'field') {
-            const id = dependencyId ? dependencyId : context.name;
+            const id = dependencyId
+                ? typeof dependencyId === 'function'
+                    ? findInjectableId(dependencyId)
+                    : dependencyId
+                : context.name;
 
             const injection: Injection = {
                 property: context.name,
