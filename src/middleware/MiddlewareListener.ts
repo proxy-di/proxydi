@@ -17,7 +17,7 @@ export interface MiddlewareListenerEvent {
 /**
  * Describe the middleware that able to listen to the registering of a dependency in containers hierarchy
  */
-export interface MiddlewareRegisteringListener {
+export interface MiddlewareRegistrator {
     onRegister(
         container: ProxyDiContainer,
         dependencyId: DependencyId,
@@ -28,7 +28,7 @@ export interface MiddlewareRegisteringListener {
 /**
  * Describe the middleware that able to listen to the removing of a dependency in containers hierarchy
  */
-export interface MiddlewareRemovingListener {
+export interface MiddlewareRemover {
     onRemove(
         container: ProxyDiContainer,
         dependencyId: DependencyId,
@@ -48,22 +48,22 @@ export class MiddlewareListener {
     constructor(private parent?: MiddlewareListener) {}
 
     add(middleware: any) {
-        if (isRegistingMiddleware(middleware)) {
+        if (isRegistrator(middleware)) {
             middleware.onRegister && this.on('register', middleware.onRegister);
         }
 
-        if (isRemovingMiddleware(middleware)) {
+        if (isRemover(middleware)) {
             middleware.onRemove && this.on('remove', middleware.onRemove);
         }
     }
 
     remove(middleware: any) {
-        if (isRegistingMiddleware(middleware)) {
+        if (isRegistrator(middleware)) {
             middleware.onRegister &&
                 this.off('register', middleware.onRegister);
         }
 
-        if (isRemovingMiddleware(middleware)) {
+        if (isRemover(middleware)) {
             middleware.onRemove && this.off('remove', middleware.onRemove);
         }
     }
@@ -109,14 +109,14 @@ export class MiddlewareListener {
     }
 }
 
-function isRegistingMiddleware(
-    middleware: any | MiddlewareRegisteringListener
-): middleware is MiddlewareRegisteringListener {
+function isRegistrator(
+    middleware: any | MiddlewareRegistrator
+): middleware is MiddlewareRegistrator {
     return middleware.onRegister;
 }
 
-function isRemovingMiddleware(
-    middleware: any | MiddlewareRemovingListener
-): middleware is MiddlewareRemovingListener {
+function isRemover(
+    middleware: any | MiddlewareRemover
+): middleware is MiddlewareRemover {
     return middleware.onRemove;
 }

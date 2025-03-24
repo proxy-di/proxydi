@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- inject, resolve register by class [#15](https://github.com/proxy-di/proxydi/pull/15)
+- dependencies for @inject(), resolve() and register() by class [#15](https://github.com/proxy-di/proxydi/pull/15)
 
 ### Changed
 

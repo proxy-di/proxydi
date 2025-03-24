@@ -12,7 +12,7 @@ Core features:
 - Automatically resolves circular dependencies with no performance impact
 - Resolves dependencies in the context of a particular container
 - Supports hierarchical containers with the ability to resolve dependencies in both directions
-- Currently under active development, the API may change until version 0.1.0
+- Currently under active development, the API may change until version 1.0.0
 
 Eperimemntal features:
 

@@ -22,6 +22,7 @@ import { makeInjectionProxy, makeDependencyProxy } from './Proxy.utils';
 import { makeConstructorDependencyProxy } from './proxy.constuctor';
 import { middlewaresClasses } from './middleware/middleware';
 import { MiddlewareListener } from './middleware/MiddlewareListener';
+import { MiddlewareContext, MiddlewareResolver } from './middleware/resolver';
 
 /**
  * A dependency injection container
@@ -52,10 +53,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
     /**
      * Holds proxies for dependencies registered in parent containers to provide for it dependencies from this container
      */
-    private parentDependencyProxies: Record<
-        DependencyId,
-        ContainerizedDependency
-    > = {};
+    private inContextProxies: Record<DependencyId, ContainerizedDependency> =
+        {};
 
     /**
      * Settings that control the behavior of the container and it's children
@@ -63,6 +62,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
     public readonly settings: Required<ContainerSettings>;
 
     private middlewareListener: MiddlewareListener;
+
+    private resolvers: MiddlewareResolver[] = [];
 
     /**
      * Creates a new instance of ProxyDiContainer.
@@ -176,7 +177,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
      */
     isKnown(dependencyId: DependencyId): boolean {
         return !!(
-            this.parentDependencyProxies[dependencyId] ||
+            this.inContextProxies[dependencyId] ||
             this.dependencies[dependencyId] ||
             (this.parent && this.parent.isKnown(dependencyId)) ||
             injectableClasses[dependencyId]
@@ -213,7 +214,17 @@ export class ProxyDiContainer implements IProxyDiContainer {
             );
         }
 
-        const proxy = this.parentDependencyProxies[dependency];
+        const context: MiddlewareContext<T> = {
+            container: this,
+            dependencyId: dependency,
+        };
+
+        let result: T;
+        for (const resolver of this.resolvers) {
+            result = resolver.resolveNext<T>(context);
+        }
+
+        const proxy = this.inContextProxies[dependency];
         if (proxy) {
             return proxy as T & ContainerizedDependency;
         }
@@ -227,7 +238,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
             ) {
                 const proxy = makeDependencyProxy(instance);
                 this.injectDependenciesTo(proxy);
-                this.parentDependencyProxies[dependency] = proxy;
+                this.inContextProxies[dependency] = proxy;
                 return proxy as any as T & ContainerizedDependency;
             }
             return instance;
@@ -236,6 +247,9 @@ export class ProxyDiContainer implements IProxyDiContainer {
         const InjectableClass = injectableClasses[dependency];
         return this.register(InjectableClass, dependency);
     }
+
+    // TODO: Separate method to resolve in context
+    // resolveInContext() {}
 
     /**
      * Injects dependencies to the given object based on its defined injections metadata. Does not affect the container.
