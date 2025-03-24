@@ -1,39 +1,24 @@
 import { ProxyDiContainer } from '../ProxyDiContainer';
 import { DependencyId } from '../types';
+import { MiddlewareContext } from './resolver';
 
 export interface MiddlewareListenerEvent {
-    register: (
-        container: ProxyDiContainer,
-        dependencyId: DependencyId,
-        dependency: any
-    ) => void;
-    remove: (
-        container: ProxyDiContainer,
-        dependencyId: DependencyId,
-        dependency: any
-    ) => void;
+    register: <T>(context: MiddlewareContext<T>) => void;
+    remove: <T>(context: MiddlewareContext<T>) => void;
 }
 
 /**
  * Describe the middleware that able to listen to the registering of a dependency in containers hierarchy
  */
 export interface MiddlewareRegistrator {
-    onRegister(
-        container: ProxyDiContainer,
-        dependencyId: DependencyId,
-        dependency: any
-    ): void;
+    onRegister<T>(context: MiddlewareContext<T>): void;
 }
 
 /**
  * Describe the middleware that able to listen to the removing of a dependency in containers hierarchy
  */
 export interface MiddlewareRemover {
-    onRemove(
-        container: ProxyDiContainer,
-        dependencyId: DependencyId,
-        dependency: any
-    ): void;
+    onRemove<T>(context: MiddlewareContext<T>): void;
 }
 
 export class MiddlewareListener {
@@ -75,27 +60,19 @@ export class MiddlewareListener {
         this.listeners[event].push(listener);
     }
 
-    onRegister(
-        container: ProxyDiContainer,
-        dependencyId: DependencyId,
-        dependency: any
-    ) {
+    onRegister<T>(context: MiddlewareContext<T>) {
         this.listeners.register.forEach((listener) =>
-            listener(container, dependencyId, dependency)
+            listener(context)
         );
 
-        this.parent?.onRegister(container, dependencyId, dependency);
+        this.parent?.onRegister(context);
     }
 
-    onRemove(
-        container: ProxyDiContainer,
-        dependencyId: DependencyId,
-        dependency: any
-    ) {
+    onRemove<T>(context: MiddlewareContext<T>) {
         this.listeners.remove.forEach((listener) =>
-            listener(container, dependencyId, dependency)
+            listener(context)
         );
-        this.parent?.onRemove(container, dependencyId, dependency);
+        this.parent?.onRemove(context);
     }
 
     private off<K extends keyof MiddlewareListenerEvent>(

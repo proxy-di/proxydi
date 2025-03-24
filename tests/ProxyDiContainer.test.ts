@@ -11,6 +11,7 @@ import { DEPENDENCY_ID, DependencyId, PROXYDI_CONTAINER } from '../src/types';
 import { isInjectionProxy } from '../src/Proxy.utils';
 import { KindomKing } from './mock/King';
 import { KindomQueen } from './mock/Queen';
+import { MiddlewareContext } from '../src/middleware/resolver';
 
 class First {
     constructor(public readonly name: string = "I'm first!") {}
@@ -807,19 +808,12 @@ describe('ProxyDi', () => {
         class TestMiddleware {
             known: DependencyId[] = [];
 
-            onRegister = (
-                _container: ProxyDiContainer,
-                dependencyId: DependencyId,
-                _dependency: any
-            ) => {
-                this.known.push(dependencyId);
+            onRegister = (context: MiddlewareContext<any>) => {
+                this.known.push(context.dependencyId);
             };
 
-            onRemove = (
-                _container: ProxyDiContainer,
-                dependencyId: DependencyId
-            ) => {
-                const index = this.known.indexOf(dependencyId);
+            onRemove = (context: MiddlewareContext<any>) => {
+                const index = this.known.indexOf(context.dependencyId);
                 if (index !== -1) {
                     this.known.splice(index, 1);
                 }

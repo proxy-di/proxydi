@@ -1,14 +1,12 @@
 import { ProxyDiContainer } from '../ProxyDiContainer';
-import { DependencyId } from '../types';
-
-export type MiddlewareNext = <T>(context: MiddlewareContext<T>) => T;
+import { ContainerizedDependency, DependencyId } from '../types';
 
 export type MiddlewareContext<T extends any> = {
     container: ProxyDiContainer;
     dependencyId: DependencyId;
-    dependency: T;
+    dependency: T & ContainerizedDependency;
 };
 
 export interface MiddlewareResolver {
-    resolveNext: <T>(context: MiddlewareContext<T>) => T;
+    resolveNext: <T>(context: MiddlewareContext<T>) => MiddlewareContext<T>;
 }

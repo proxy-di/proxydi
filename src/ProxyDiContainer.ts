@@ -151,7 +151,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
             this.middlewareListener.add(instance);
         }
 
-        this.middlewareListener.onRegister(this, id, instance);
+        this.middlewareListener.onRegister({
+            container: this,
+            dependencyId: id,
+            dependency: instance,
+        });
 
         return instance;
     }
@@ -214,22 +218,28 @@ export class ProxyDiContainer implements IProxyDiContainer {
             );
         }
 
-        const context: MiddlewareContext<T> = {
+        let context: MiddlewareContext<T> = {
             container: this,
             dependencyId: dependency,
+            dependency: this.resolveImpl(dependency),
         };
 
-        let result: T;
         for (const resolver of this.resolvers) {
-            result = resolver.resolveNext<T>(context);
+            context = resolver.resolveNext<T>(context);
         }
 
-        const proxy = this.inContextProxies[dependency];
+        return context.dependency;
+    }
+
+    private resolveImpl<T>(
+        dependencyId: DependencyId
+    ): T & ContainerizedDependency {
+        const proxy = this.inContextProxies[dependencyId];
         if (proxy) {
             return proxy as T & ContainerizedDependency;
         }
 
-        const instance = this.findDependency<T>(dependency);
+        const instance = this.findDependency<T>(dependencyId);
         if (instance) {
             if (
                 instance[PROXYDI_CONTAINER] !== this &&
@@ -238,18 +248,15 @@ export class ProxyDiContainer implements IProxyDiContainer {
             ) {
                 const proxy = makeDependencyProxy(instance);
                 this.injectDependenciesTo(proxy);
-                this.inContextProxies[dependency] = proxy;
+                this.inContextProxies[dependencyId] = proxy;
                 return proxy as any as T & ContainerizedDependency;
             }
             return instance;
         }
 
-        const InjectableClass = injectableClasses[dependency];
-        return this.register(InjectableClass, dependency);
+        const InjectableClass = injectableClasses[dependencyId];
+        return this.register(InjectableClass, dependencyId);
     }
-
-    // TODO: Separate method to resolve in context
-    // resolveInContext() {}
 
     /**
      * Injects dependencies to the given object based on its defined injections metadata. Does not affect the container.
@@ -335,7 +342,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
             delete this.dependencies[id];
 
-            this.middlewareListener.onRemove(this, id, dependency);
+            this.middlewareListener.onRemove({
+                container: this,
+                dependencyId: id,
+                dependency,
+            });
         }
     }
 
