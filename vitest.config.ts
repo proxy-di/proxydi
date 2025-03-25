@@ -15,7 +15,7 @@ export default defineConfig({
                 '**/*.test.ts',
                 'rollup.config.js',
                 'vitest.config.ts',
-                'tests/',
+                'src/__tests__/',
                 'src/types.ts',
                 'docs/',
             ],

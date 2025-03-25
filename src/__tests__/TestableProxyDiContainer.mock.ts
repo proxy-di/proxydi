@@ -1,4 +1,4 @@
-import { ProxyDiContainer } from '../src/ProxyDiContainer';
+import { ProxyDiContainer } from '../ProxyDiContainer';
 
 export class TestableProxyDiContainer extends ProxyDiContainer {
     getChildren() {

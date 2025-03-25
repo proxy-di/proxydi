@@ -1,11 +1,12 @@
-export { inject } from './inject';
+export { inject } from './inject.decorator';
 export { ProxyDiContainer } from './ProxyDiContainer';
-export { injectable } from './injectable';
-export { middleware } from './middleware/middleware';
+export { injectable } from './injectable.decorator';
+export { middleware } from './middleware/middleware.decorator';
 export {
-    MiddlewareRegisteringListener,
-    MiddlewareRemovingListener,
-} from './middleware/MiddlewareListener';
+    MiddlewareRegistrator,
+    MiddlewareRemover,
+    MiddlewareResolver,
+} from './middleware/middleware.api';
 export {
     Injection,
     DependencyId,

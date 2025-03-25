@@ -1,12 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import {
-    isInjectionProxy,
-    isInstanceProxy,
-    makeInjectionProxy,
-    makeDependencyProxy,
-} from '../src/Proxy.utils';
-import { injectable, inject, ProxyDiContainer } from '../src/index';
-import { INJECTIONS } from '../src/types';
+import { injectable, inject, ProxyDiContainer } from '../index';
+import { INJECTIONS } from '../types';
+import { isInjectionProxy, makeInjectionProxy } from '../makeInjectionProxy';
+import { isDependencyProxy, makeDependencyProxy } from '../makeDependencyProxy';
 
 const someDependencyId = 'someDependency';
 const otherDependencyId = 'otherDependency';
@@ -55,7 +51,7 @@ describe('Proxy utils', () => {
             const client = container.resolve<Client>('client');
             const clientWrapper = makeDependencyProxy(client);
 
-            expect(isInstanceProxy(clientWrapper)).is.true;
+            expect(isDependencyProxy(clientWrapper)).is.true;
 
             expect(clientWrapper.ownValue).equals('ownValue');
 

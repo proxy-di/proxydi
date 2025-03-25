@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inject, ProxyDiContainer, injectable } from '../src/index';
+import { inject, ProxyDiContainer, injectable } from '../index';
 
 @injectable()
 class First {
