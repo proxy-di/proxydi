@@ -6,6 +6,7 @@ export {
     MiddlewareRegistrator,
     MiddlewareRemover,
     MiddlewareResolver,
+    MiddlewareContext,
 } from './middleware/middleware.api';
 export {
     Injection,
