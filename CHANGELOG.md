@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Another middleware API
+- Another middleware API [#16](https://github.com/proxy-di/proxydi/pull/16)
 
 ## [[0.0.13](https://www.npmjs.com/package/proxydi/v/0.0.13)] - 2025-03-04
 
