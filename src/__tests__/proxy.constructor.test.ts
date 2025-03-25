@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ProxyDiContainer } from '../src';
-import { makeConstructorDependencyProxy } from '../src/proxy.constuctor';
+import { ProxyDiContainer } from '..';
+import { makeConstructorDependencyProxy } from '../makeConstructorDependencyProxy';
 
 class First {
     name = "I'm first!";

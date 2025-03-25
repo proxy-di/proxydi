@@ -11,18 +11,24 @@ import {
     constructorInjections,
     findInjectableId,
     injectableClasses,
-} from './injectable';
+} from './injectable.decorator';
 import {
     Injection,
     ContainerSettings as ContainerSettings,
     DependencyId,
 } from './types';
 import { DEFAULT_SETTINGS } from './presets';
-import { makeInjectionProxy, makeDependencyProxy } from './Proxy.utils';
-import { makeConstructorDependencyProxy } from './proxy.constuctor';
-import { middlewaresClasses } from './middleware/middleware';
-import { MiddlewareListener } from './middleware/MiddlewareListener';
-import { MiddlewareContext, MiddlewareResolver } from './middleware/resolver';
+import { makeInjectionProxy } from './makeInjectionProxy';
+import { makeDependencyProxy } from './makeDependencyProxy';
+import { makeConstructorDependencyProxy } from './makeConstructorDependencyProxy';
+import { middlewaresClasses } from './middleware/middleware.decorator';
+import { MiddlewareManager } from './middleware/MiddlewaresManager';
+import {
+    MiddlewareContext,
+    MiddlewareRegistrator,
+    MiddlewareRemover,
+    MiddlewareResolver,
+} from './middleware/middleware.api';
 
 /**
  * A dependency injection container
@@ -61,9 +67,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
      */
     public readonly settings: Required<ContainerSettings>;
 
-    private middlewareListener: MiddlewareListener;
-
-    private resolvers: MiddlewareResolver[] = [];
+    private middlewareManager: MiddlewareManager;
 
     /**
      * Creates a new instance of ProxyDiContainer.
@@ -73,8 +77,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
     constructor(settings?: ContainerSettings, parent?: ProxyDiContainer) {
         this.id = ProxyDiContainer.idCounter++;
 
-        this.middlewareListener = new MiddlewareListener(
-            parent?.middlewareListener
+        this.middlewareManager = new MiddlewareManager(
+            parent?.middlewareManager
         );
 
         if (parent) {
@@ -83,6 +87,24 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
 
         this.settings = { ...DEFAULT_SETTINGS, ...settings };
+    }
+
+    registerMiddleware(
+        middleware:
+            | MiddlewareRegistrator
+            | MiddlewareRemover
+            | MiddlewareResolver
+    ) {
+        this.middlewareManager.add(middleware);
+    }
+
+    removeMiddleware(
+        middleware:
+            | MiddlewareRegistrator
+            | MiddlewareRemover
+            | MiddlewareResolver
+    ) {
+        this.middlewareManager.remove(middleware);
     }
 
     /**
@@ -148,14 +170,16 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
         const constructorName = instance.constructor?.name;
         if (constructorName && middlewaresClasses[constructorName]) {
-            this.middlewareListener.add(instance);
+            this.middlewareManager.add(instance);
         }
 
-        this.middlewareListener.onRegister({
+        let context: MiddlewareContext<any> = {
             container: this,
             dependencyId: id,
             dependency: instance,
-        });
+        };
+
+        this.middlewareManager.onRegister(context);
 
         return instance;
     }
@@ -224,16 +248,14 @@ export class ProxyDiContainer implements IProxyDiContainer {
             dependency: this.resolveImpl(dependency),
         };
 
-        for (const resolver of this.resolvers) {
-            context = resolver.resolveNext<T>(context);
-        }
+        context = this.middlewareManager.onResolve(context);
 
         return context.dependency;
     }
 
-    private resolveImpl<T>(
+    private resolveImpl = <T>(
         dependencyId: DependencyId
-    ): T & ContainerizedDependency {
+    ): T & ContainerizedDependency => {
         const proxy = this.inContextProxies[dependencyId];
         if (proxy) {
             return proxy as T & ContainerizedDependency;
@@ -249,14 +271,14 @@ export class ProxyDiContainer implements IProxyDiContainer {
                 const proxy = makeDependencyProxy(instance);
                 this.injectDependenciesTo(proxy);
                 this.inContextProxies[dependencyId] = proxy;
-                return proxy as any as T & ContainerizedDependency;
+                return proxy as T & ContainerizedDependency;
             }
             return instance;
         }
 
         const InjectableClass = injectableClasses[dependencyId];
         return this.register(InjectableClass, dependencyId);
-    }
+    };
 
     /**
      * Injects dependencies to the given object based on its defined injections metadata. Does not affect the container.
@@ -329,7 +351,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         if (dependency) {
             const constructorName = dependency.constructor?.name;
             if (constructorName && middlewaresClasses[constructorName]) {
-                this.middlewareListener.remove(dependency);
+                this.middlewareManager.remove(dependency);
             }
 
             const dependencyInjects: Injections = dependency[INJECTIONS]
@@ -342,7 +364,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
             delete this.dependencies[id];
 
-            this.middlewareListener.onRemove({
+            this.middlewareManager.onRemove({
                 container: this,
                 dependencyId: id,
                 dependency,

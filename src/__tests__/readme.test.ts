@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { injectable, inject, ProxyDiContainer, resolveAll } from '../src';
+import { injectable, inject, ProxyDiContainer, resolveAll } from '..';
 
 describe('README', () => {
     it('Quick start', () => {

@@ -1,4 +1,4 @@
-import { findInjectableId } from './injectable';
+import { findInjectableId } from './injectable.decorator';
 import {
     ContainerizedDependency,
     DependencyId,

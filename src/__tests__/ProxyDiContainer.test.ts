@@ -5,13 +5,16 @@ import {
     injectable,
     resolveAll,
     middleware,
-} from '../src/index';
+} from '../index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
-import { DEPENDENCY_ID, DependencyId, PROXYDI_CONTAINER } from '../src/types';
-import { isInjectionProxy } from '../src/Proxy.utils';
+import { DEPENDENCY_ID, DependencyId, PROXYDI_CONTAINER } from '../types';
+import { isInjectionProxy } from '../makeInjectionProxy';
 import { KindomKing } from './mock/King';
 import { KindomQueen } from './mock/Queen';
-import { MiddlewareContext } from '../src/middleware/resolver';
+import {
+    MiddlewareContext,
+    MiddlewareResolver,
+} from '../middleware/middleware.api';
 
 class First {
     constructor(public readonly name: string = "I'm first!") {}
@@ -900,6 +903,59 @@ describe('ProxyDi', () => {
                     field: string;
                 }
             }).toThrowError('ProxyDi has already regisered middleware');
+        });
+
+        it('resolver', () => {
+            @middleware()
+            class Faker implements MiddlewareResolver {
+                onResolve = <T>(
+                    context: MiddlewareContext<T>
+                ): MiddlewareContext<T> => {
+                    return {
+                        ...context,
+                        dependency: 'fake value' as any,
+                    };
+                };
+            }
+
+            const container = new ProxyDiContainer();
+            container.register(Faker);
+
+            const fake1 = container.resolve(Auto);
+            expect(fake1).equal('fake value');
+
+            const fake2 = container.resolve(Faker);
+            expect(fake2).equal('fake value');
+
+            container.remove('Faker');
+
+            const auto = container.resolve(Auto);
+            expect(auto).is.instanceOf(Auto);
+        });
+
+        it('not dependency resolver', () => {
+            class Faker implements MiddlewareResolver {
+                onResolve = <T>(
+                    context: MiddlewareContext<T>
+                ): MiddlewareContext<T> => {
+                    return {
+                        ...context,
+                        dependency: 'fake value' as any,
+                    };
+                };
+            }
+
+            const container = new ProxyDiContainer();
+            const faker = new Faker();
+            container.registerMiddleware(faker);
+
+            const fake1 = container.resolve(Auto);
+            expect(fake1).equal('fake value');
+
+            container.removeMiddleware(faker);
+
+            const auto = container.resolve(Auto);
+            expect(auto).is.instanceOf(Auto);
         });
     });
 

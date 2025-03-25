@@ -1,4 +1,4 @@
-import { injectable } from '../../src';
+import { injectable } from '../../injectable.decorator';
 import { KindomKing } from './King';
 
 @injectable(['KindomKing'])

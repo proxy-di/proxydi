@@ -1,6 +1,6 @@
-import { describe, it, expect, should } from 'vitest';
-import { inject, injectable, ProxyDiContainer } from '../src/index';
-import { Injection, INJECTIONS } from '../src/types';
+import { describe, it, expect } from 'vitest';
+import { inject, injectable, ProxyDiContainer } from '../index';
+import { Injection, INJECTIONS } from '../types';
 
 class Empty {
     constructor(public readonly name = 'Free dependency') {}
