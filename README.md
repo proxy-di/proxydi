@@ -19,6 +19,7 @@ Experimental features:
 - Construtor injections (see unit tests for examples)
 - Middleware (see unit tests for examples)
 - Matches dependencies by unique identifiers or automatically using class names and property names
+- [ON_CONTAINERIZED]() method
 
 ## Quick start
 
