@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- ON_CONTAINERIZED symbol to inform dependency was registered in container [#17](https://github.com/proxy-di/proxydi/pull/17)
-
+- ON_CONTAINERIZED symbol to inform dependency was registered in container [#19](https://github.com/proxy-di/proxydi/pull/19)
 
 ## [[0.1.2](https://www.npmjs.com/package/proxydi/v/0.1.2)] - 2025-03-25
 
