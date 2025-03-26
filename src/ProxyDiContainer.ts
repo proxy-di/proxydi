@@ -6,6 +6,7 @@ import {
     DependencyClass,
     PROXYDI_CONTAINER,
     Injections,
+    ON_CONTAINERIZED,
 } from './types';
 import {
     constructorInjections,
@@ -91,18 +92,18 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
     registerMiddleware(
         middleware:
-            | MiddlewareRegistrator
-            | MiddlewareRemover
-            | MiddlewareResolver
+            | MiddlewareRegistrator<any>
+            | MiddlewareRemover<any>
+            | MiddlewareResolver<any>
     ) {
         this.middlewareManager.add(middleware);
     }
 
     removeMiddleware(
         middleware:
-            | MiddlewareRegistrator
-            | MiddlewareRemover
-            | MiddlewareResolver
+            | MiddlewareRegistrator<any>
+            | MiddlewareRemover<any>
+            | MiddlewareResolver<any>
     ) {
         this.middlewareManager.remove(middleware);
     }
@@ -163,6 +164,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         if (isObject) {
             instance[PROXYDI_CONTAINER] = this;
             instance[DEPENDENCY_ID] = id;
+            instance[ON_CONTAINERIZED] && instance[ON_CONTAINERIZED](this);
         }
 
         this.injectDependenciesTo(instance);

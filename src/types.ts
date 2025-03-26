@@ -1,3 +1,5 @@
+import { ProxyDiContainer } from './ProxyDiContainer';
+
 export type DependencyId = string | symbol;
 
 export type DependencyClass<T> = new (...args: any[]) => T;
@@ -50,6 +52,9 @@ export const DEPENDENCY_ID = Symbol('DependencyId');
  * The property stores a reference to the ProxyDiContainer in which the dependency was registered.
  */
 export const PROXYDI_CONTAINER = Symbol('proxyDiContainer');
+
+export const ON_CONTAINERIZED = Symbol('onContainerized');
+export type OnContainerizedMethod = (container: ProxyDiContainer) => void;
 
 export type Injections = Record<string | symbol, Injection>;
 export type Dependency = {
