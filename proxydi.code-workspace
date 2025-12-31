@@ -3,6 +3,15 @@
         {
             "path": ".",
         },
+        {
+            "path": "../proxydi-react",
+        },
+        {
+            "path": "../node-babel-examples",
+        },
+        {
+            "path": "../node-ts-examples",
+        },
     ],
     "settings": {
         "editor.formatOnSave": true,

@@ -14,6 +14,7 @@ export {
     DependencyClass,
     ContainerSettings,
     OnContainerizedMethod,
+    ContainerizedDependency,
     // TODO: I'm not sure if these should be shared
     PROXYDI_CONTAINER,
     DEPENDENCY_ID,
