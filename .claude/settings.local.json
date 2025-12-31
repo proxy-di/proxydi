@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm audit:*)",
+      "WebFetch(domain:proxy-di.github.io)",
+      "Skill(doc-coauthoring)",
+      "Bash(git checkout:*)"
+    ]
+  }
+}

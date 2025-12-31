@@ -9,6 +9,7 @@ export default defineConfig({
         },
         coverage: {
             reporter: ['text', 'lcov'],
+            include: ['src/**/*.ts'],
             exclude: [
                 'node_modules/',
                 'dist/',
@@ -18,6 +19,7 @@ export default defineConfig({
                 'src/__tests__/',
                 'src/types.ts',
                 'docs/',
+                '.claude/',
             ],
         },
     },
