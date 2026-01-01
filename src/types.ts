@@ -16,11 +16,14 @@ export type IProxyDiContainer = {
     id: number;
     settings: Required<ContainerSettings>;
 
-    isKnown: (dependencyId: DependencyId) => boolean;
+    isKnown: (dependencyId: DependencyId | DependencyClass<any>) => boolean;
 
     injectDependenciesTo: (dependency: any) => void;
 
-    register: (dependency: any, dependencyId: DependencyId) => any;
+    register: (
+        dependency: any,
+        dependencyId?: DependencyId | DependencyClass<any>
+    ) => any;
 
     resolve: <T>(
         dependencyId: DependencyId | DependencyClass<any>

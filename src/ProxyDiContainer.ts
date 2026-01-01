@@ -108,28 +108,40 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * In case of class, it will be instantiated without any parameters.
      *
      * @param dependency The dependency instance or dependency class.
-     * @param dependencyId The unique identifier for the dependency in this container.
+     * @param dependencyId The unique identifier for the dependency in this container. Can be a string, symbol, or class constructor (which will be normalized to class name).
      * @throws Error if dependency is already registered and rewriting is not allowed or if invalid dependency (not object) is provided and this it now allowed.
      * @returns Dependency instance, registered in container
      */
     register<T>(
         DependencyClass: DependencyClass<T>,
-        dependencyId?: DependencyId
+        dependencyId?: DependencyId | DependencyClass<any>
     ): T & ContainerizedDependency;
     register<T>(
         dependency: T extends new (...args: any[]) => any ? never : T,
-        dependencyId: DependencyId
+        dependencyId?: DependencyId | DependencyClass<any>
     ): T & ContainerizedDependency;
-    register(dependency: any, dependecyId: DependencyId): any {
-        let id = dependecyId;
-        if (!id) {
-            if (typeof dependency === 'function') {
-                try {
-                    id = findInjectableId(dependency);
-                } catch {
-                    id = dependency.name;
-                }
+    register(
+        dependency: any,
+        dependecyId?: DependencyId | DependencyClass<any>
+    ): any {
+        let id: DependencyId;
+        if (dependecyId) {
+            id = this.normalizeDependencyId(dependecyId);
+        } else if (typeof dependency === 'function') {
+            try {
+                id = findInjectableId(dependency);
+            } catch {
+                id = dependency.name;
             }
+        } else if (
+            dependency?.constructor?.name &&
+            dependency.constructor.name !== 'Object'
+        ) {
+            id = dependency.constructor.name;
+        } else {
+            throw new Error(
+                'dependencyId is required when registering plain objects or literals'
+            );
         }
 
         if (this.dependencies[id]) {
@@ -183,15 +195,16 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
     /**
      * Checks if a dependency with the given ID is known to the container or its ancestors which means that it can be resolved by this container
-     * @param dependencyId The identifier of the dependency.
+     * @param dependencyId The identifier of the dependency. Can be a string, symbol, or class constructor (which will be normalized to class name).
      * @returns True if the dependency is known, false otherwise.
      */
-    isKnown(dependencyId: DependencyId): boolean {
+    isKnown(dependencyId: DependencyId | DependencyClass<any>): boolean {
+        const id = this.normalizeDependencyId(dependencyId);
         return !!(
-            this.inContextProxies[dependencyId] ||
-            this.dependencies[dependencyId] ||
-            (this.parent && this.parent.isKnown(dependencyId)) ||
-            injectableClasses[dependencyId]
+            this.inContextProxies[id] ||
+            this.dependencies[id] ||
+            (this.parent && this.parent.isKnown(id)) ||
+            injectableClasses[id]
         );
     }
 
@@ -397,6 +410,24 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
 
         return dependency as T & ContainerizedDependency;
+    }
+
+    /**
+     * Normalizes dependency identifier by converting class constructors to their names.
+     * @param id The dependency identifier (string, symbol, or class constructor).
+     * @returns Normalized dependency identifier (string or symbol).
+     */
+    private normalizeDependencyId(
+        id: DependencyId | DependencyClass<any>
+    ): DependencyId {
+        if (typeof id === 'function') {
+            try {
+                return findInjectableId(id);
+            } catch {
+                return id.name;
+            }
+        }
+        return id;
     }
 
     /**

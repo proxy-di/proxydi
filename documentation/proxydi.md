@@ -26,7 +26,8 @@ After making changes, update CHANGELOG.md with the appropriate version and chang
 
 ## Key Resources
 
-- [How to Write Documentation](./writing-documentation.md) — style guide for this project
+- [How to Write User Documentation](./writing-user-documentation.md) — style guide for user documentation
+- [How to Write Developer Documentation](./writing-developer-documentation.md) — style guide for developer project documentation``
 - [Roadmap](./roadmap.md) — planned improvements and features
 - [Bundler Examples TODO](./bundler-examples-todo.md) — tasks for creating bundler configuration examples
 

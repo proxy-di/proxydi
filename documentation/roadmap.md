@@ -1,5 +1,23 @@
 # ProxyDI Roadmap
 
+## Documentation Updates
+
+### Rewrite User Documentation with Simplified Syntax
+
+**Goal:** Radically simplify the entry barrier by showcasing the simplest syntax first.
+
+**Approach:**
+- Show examples without explicit dependency IDs as the primary usage pattern
+- Start with simple cases where class names are sufficient
+- Most use cases don't need custom IDs - this should be the main message
+- Move complex cases (multiple instances of same class with different IDs) to advanced section near the end
+
+**Tasks:**
+- [ ] Rewrite Quick Start section - show ID-less syntax first
+- [ ] Update all basic examples to use simplified syntax
+- [ ] Create new "Advanced: Custom Dependency IDs" section
+- [ ] Ensure all code examples work without modifications
+
 ## Bug Fixes
 
 ### Fix `register(instance, Class)` behavior

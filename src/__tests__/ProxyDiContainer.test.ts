@@ -157,6 +157,45 @@ describe('ProxyDi', () => {
             const child = parent.createChildContainer();
             expect(child.isKnown(dependencyId)).is.true;
         });
+
+        it('register instance with Class as dependencyId works after normalization', () => {
+            const container = new ProxyDiContainer();
+            const instance = new First();
+
+            // Class is normalized to string "First"
+            const registered = container.register(instance, First);
+
+            // Should be stored under string "First", not function
+            expect(container.isKnown(First)).is.true;
+            expect(container.isKnown('First')).is.true;
+
+            // Should resolve correctly
+            const resolved = container.resolve(First);
+            expect(resolved).toBe(instance);
+        });
+
+        it('register instance without dependencyId uses constructor name', () => {
+            const container = new ProxyDiContainer();
+            const instance = new First();
+
+            const registered = container.register(instance);
+
+            expect(registered).toBe(instance);
+            expect(container.isKnown('First')).is.true;
+            expect(container.resolve<First>('First')).toBe(instance);
+            expect(container.resolve(First)).toBe(instance);
+        });
+
+        it('register plain object without dependencyId throws error', () => {
+            const container = new ProxyDiContainer();
+            const plainObject = { value: 42 };
+
+            expect(() => {
+                container.register(plainObject);
+            }).toThrowError(
+                'dependencyId is required when registering plain objects or literals'
+            );
+        });
     });
 
     describe('resolve()', () => {
