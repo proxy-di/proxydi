@@ -13,16 +13,6 @@ class Second {
     @inject('First') first: First;
 }
 
-@injectable('third', ['First'])
-class Third {
-    constructor(public readonly first: First) {}
-}
-
-@injectable(['First'])
-class Forth {
-    constructor(public readonly first: First) {}
-}
-
 describe('@injectable()', () => {
     it("should resolve dependency just by @injectable ID's without registration", () => {
         const container = new ProxyDiContainer();
@@ -50,23 +40,5 @@ describe('@injectable()', () => {
                 field: true;
             }
         }).toThrowError('@injectable decorator should decorate classes');
-    });
-
-    it('should pass injections to constructor with depenency', () => {
-        const container = new ProxyDiContainer();
-
-        const third = container.resolve<Third>('third');
-
-        expect(third.first).is.not.undefined;
-        expect(third.first.name).equal("I'm first!");
-    });
-
-    it('should pass injections to constructor', () => {
-        const container = new ProxyDiContainer();
-
-        const forth = container.resolve(Forth);
-
-        expect(forth.first).is.not.undefined;
-        expect(forth.first.name).equal("I'm first!");
     });
 });

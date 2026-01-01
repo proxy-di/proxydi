@@ -103,34 +103,6 @@ describe('README', () => {
         expect(gameEngine.start()).equal('Game started');
     });
 
-    it('Kindom', () => {
-        @injectable(['Queen'])
-        class King {
-            name: string = `I'm a king`;
-            constructor(public readonly queen: Queen) {
-                queen.name = `I'm a king's queen`;
-            }
-        }
-
-        @injectable(['King'])
-        class Queen {
-            name: string = `I'm a queen`;
-            constructor(public readonly king: King) {
-                // king.name = `I'm a queen's king`;
-            }
-        }
-
-        const container = new ProxyDiContainer();
-
-        const king = container.resolve(King);
-        const queen = container.resolve(Queen);
-
-        expect(king.queen.name).equal(`I'm a king's queen`);
-        expect(queen.king.name).equal(`I'm a king`);
-        // TODO: Make it work
-        // expect(queen.king.name).equal(`I'm a queen's king`);
-    });
-
     it('Hierarchy of containers', () => {
         class GameLevel {
             constructor(public readonly settings: { undewater: boolean }) {}

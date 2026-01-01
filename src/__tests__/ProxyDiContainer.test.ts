@@ -7,10 +7,13 @@ import {
     middleware,
 } from '../index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
-import { DEPENDENCY_ID, DependencyId, PROXYDI_CONTAINER } from '../types';
+import {
+    DEPENDENCY_ID,
+    DependencyId,
+    PROXYDI_CONTAINER,
+    ON_CONTAINERIZED,
+} from '../types';
 import { isInjectionProxy } from '../makeInjectionProxy';
-import { KindomKing } from './mock/King';
-import { KindomQueen } from './mock/Queen';
 import {
     MiddlewareContext,
     MiddlewareResolver,
@@ -728,47 +731,23 @@ describe('ProxyDi', () => {
         });
     });
 
-    describe('constructor injections', () => {
-        it('Engagement party', () => {
-            @injectable(['Fiancée'])
-            class Fiancé {
-                name: string = `John`;
-                constructor(public readonly feancee: Fiancée) {}
+    describe('ON_CONTAINERIZED', () => {
+        it('should call ON_CONTAINERIZED when dependency is registered', () => {
+            const container = new ProxyDiContainer();
+            let called = false;
+            let passedContainer: any = null;
 
-                introduce = () =>
-                    `I'm ${this.name} and this my fiancée, ${this.feancee.name}`;
+            class TestClass {
+                [ON_CONTAINERIZED](c: ProxyDiContainer) {
+                    called = true;
+                    passedContainer = c;
+                }
             }
 
-            @injectable(['Fiancé'])
-            class Fiancée {
-                name: string = `Mary`;
-                constructor(public readonly feance: Fiancé) {}
+            container.register(new TestClass(), 'test');
 
-                introduce = () =>
-                    `I'm ${this.name} and this my fiancé, ${this.feance.name}`;
-            }
-
-            const container = new ProxyDiContainer();
-
-            const john = container.resolve(Fiancé);
-            const mary = container.resolve(Fiancée);
-
-            expect(john.feancee.name).equal(`Mary`);
-            expect(mary.feance.name).equal(`John`);
-            expect(john.introduce()).equal(
-                `I'm John and this my fiancée, Mary`
-            );
-            expect(mary.introduce()).equal(`I'm Mary and this my fiancé, John`);
-        });
-
-        it('Kindom from files', () => {
-            const container = new ProxyDiContainer();
-
-            const king = container.resolve(KindomKing);
-            const queen = container.resolve(KindomQueen);
-
-            expect(king.queen.name).equal(`I'm a queen`);
-            expect(queen.king.name).equal(`I'm a king`);
+            expect(called).is.true;
+            expect(passedContainer).equals(container);
         });
     });
 

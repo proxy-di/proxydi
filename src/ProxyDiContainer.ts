@@ -8,11 +8,7 @@ import {
     Injections,
     ON_CONTAINERIZED,
 } from './types';
-import {
-    constructorInjections,
-    findInjectableId,
-    injectableClasses,
-} from './injectable.decorator';
+import { findInjectableId, injectableClasses } from './injectable.decorator';
 import {
     Injection,
     ContainerSettings as ContainerSettings,
@@ -21,7 +17,6 @@ import {
 import { DEFAULT_SETTINGS } from './presets';
 import { makeInjectionProxy } from './makeInjectionProxy';
 import { makeDependencyProxy } from './makeDependencyProxy';
-import { makeConstructorDependencyProxy } from './makeConstructorDependencyProxy';
 import { middlewaresClasses } from './middleware/middleware.decorator';
 import { MiddlewareManager } from './middleware/MiddlewaresManager';
 import {
@@ -149,7 +144,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         const isClass = typeof dependency === 'function';
 
         if (isClass) {
-            instance = this.createInstance(dependency, id);
+            instance = new dependency();
         } else {
             instance = dependency;
         }
@@ -184,20 +179,6 @@ export class ProxyDiContainer implements IProxyDiContainer {
         this.middlewareManager.onRegister(context);
 
         return instance;
-    }
-
-    private createInstance(
-        Dependency: DependencyClass<any>,
-        dependencyId: DependencyId
-    ): any {
-        const paramIds = constructorInjections[dependencyId] || [];
-        const params: any[] = [];
-        for (const id of paramIds) {
-            const param = makeConstructorDependencyProxy(this, id);
-            params.push(param);
-        }
-
-        return new Dependency(...params);
     }
 
     /**

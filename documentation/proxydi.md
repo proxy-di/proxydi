@@ -10,6 +10,14 @@
 
 **This must be done EVERY TIME you work on the project.** ProxyDI is a production library used in other projects. Changes have real impact.
 
+### Running Tests
+
+After code changes, run `npm run coverage`. Maintain 100% coverage for all code branches.
+
+### Updating CHANGELOG
+
+After making changes, update CHANGELOG.md with the appropriate version and changes.
+
 ## Documentation Structure
 
 **[Library Users Documentation](../README.md):** for developers using ProxyDI in their projects.
@@ -79,7 +87,6 @@ graph TB
 **Proxy Implementation:**
 
 - `makeInjectionProxy.ts` — Proxy for `@inject` fields (auto-bakes after first use)
-- `makeConstructorDependencyProxy.ts` — Proxy for constructor params (permanent, never bakes)
 - `makeDependencyProxy.ts` — Proxy for `resolveInContainerContext` (permanent)
 
 **Middleware:**
@@ -97,10 +104,9 @@ graph TB
 
 All tests in `src/__tests__/`:
 
-- `ProxyDiContainer.test.ts` — main container behavior (731 lines, comprehensive coverage)
+- `ProxyDiContainer.test.ts` — main container behavior (comprehensive coverage)
 - `inject.test.ts` — `@inject` decorator tests
 - `injectable.test.ts` — `@injectable` decorator tests
-- `proxy.constructor.test.ts` — constructor injection tests
 - `readme.test.ts` — examples from README (ensures docs stay correct)
 
 ## Architecture Decisions
@@ -110,7 +116,6 @@ All tests in `src/__tests__/`:
 Enables circular dependency resolution without manual intervention. Different Proxy types have different lifecycle:
 
 - Field injections (`@inject`) — auto-bake after first use (see `makeInjectionProxy.ts:30-32`)
-- Constructor injections — permanent Proxy (see `makeConstructorDependencyProxy.ts`)
 - Context resolution — permanent Proxy (see `makeDependencyProxy.ts`)
 
 ### Why `resolveInContainerContext` is disabled by default?
@@ -123,12 +128,11 @@ TypeScript overloads distinguish class constructors from instances. Conditional 
 
 ## Performance Characteristics
 
-| Feature                       | Proxy Type       | Baking                 | Performance Impact |
-| ----------------------------- | ---------------- | ---------------------- | ------------------ |
-| `@inject` fields (default)    | InjectionProxy   | Auto-bake on first use | Minimal (one-time) |
-| `@inject` fields (rewritable) | InjectionProxy   | Never                  | ~100x slower       |
-| Constructor params            | ConstructorProxy | Never                  | ~100x slower       |
-| `resolveInContainerContext`   | DependencyProxy  | Never                  | ~100x slower       |
+| Feature                       | Proxy Type      | Baking                 | Performance Impact |
+| ----------------------------- | --------------- | ---------------------- | ------------------ |
+| `@inject` fields (default)    | InjectionProxy  | Auto-bake on first use | Minimal (one-time) |
+| `@inject` fields (rewritable) | InjectionProxy  | Never                  | ~100x slower       |
+| `resolveInContainerContext`   | DependencyProxy | Never                  | ~100x slower       |
 
 See performance tests in `ProxyDiContainer.test.ts:962-994` (commented out).
 
