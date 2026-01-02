@@ -2,35 +2,6 @@
 
 ## Documentation Updates
 
-### Rewrite User Documentation with Simplified Syntax
-
-**Goal:** Radically simplify the entry barrier by showcasing the simplest syntax first.
-
-**Approach:**
-- Show examples without explicit dependency IDs as the primary usage pattern
-- Start with simple cases where class names are sufficient
-- Most use cases don't need custom IDs - this should be the main message
-- Move complex cases (multiple instances of same class with different IDs) to advanced section near the end
-
-**Tasks:**
-- [ ] Rewrite Quick Start section - show ID-less syntax first
-- [ ] Update all basic examples to use simplified syntax
-- [ ] Create new "Advanced: Custom Dependency IDs" section
-- [ ] Ensure all code examples work without modifications
-
-## Bug Fixes
-
-### Fix `register(instance, Class)` behavior
-
-**Problem:** `register(instance, SomeClass)` doesn't work correctly but doesn't throw error - silently fails or behaves unexpectedly.
-
-**Tasks:**
-
-- [ ] **Verify the bug exists** - Check all existing tests with `register()` to see if this pattern is used
-- [ ] **Write failing test** - Create test that demonstrates the problem with `register(instance, Class)`
-- [ ] **Improve TypeScript types** - Ensure type system prevents this (verify current overloads work correctly)
-- [ ] **Add runtime validation** - Make code throw exception when `register(instance, Class)` is called
-- [ ] **Add tests for exception** - Cover all edge cases with tests
 
 ## Bundler Examples
 

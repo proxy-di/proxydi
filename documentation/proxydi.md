@@ -12,6 +12,8 @@
 
 ### Running Tests
 
+Always use `npm run test:ci` when running tests during refactoring. 
+
 After code changes, run `npm run coverage`. Maintain 100% coverage for all code branches.
 
 ### Updating CHANGELOG

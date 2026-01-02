@@ -12,11 +12,25 @@ import { Injection, INJECTIONS, DependencyId, DependencyClass } from './types';
 export const inject = (dependencyId?: DependencyId | DependencyClass<any>) => {
     return function (_value: unknown, context: ClassFieldDecoratorContext) {
         if (context?.kind === 'field') {
-            const id = dependencyId
-                ? typeof dependencyId === 'function'
-                    ? findInjectableId(dependencyId)
-                    : dependencyId
-                : context.name;
+            let id: DependencyId;
+
+            if (!dependencyId) {
+                id = context.name;
+            } else if (typeof dependencyId === 'function') {
+                try {
+                    // Try to find in @injectable (for custom IDs)
+                    id = findInjectableId(dependencyId);
+                } catch {
+                    // Fallback to class.name for non-injectable classes
+                    if (dependencyId.name) {
+                        id = dependencyId.name;
+                    } else {
+                        throw new Error('Invalid dependency class');
+                    }
+                }
+            } else {
+                id = dependencyId;
+            }
 
             const injection: Injection = {
                 property: context.name,
