@@ -7,15 +7,14 @@ import {
     PROXYDI_CONTAINER,
     Injections,
     ON_CONTAINERIZED,
+    Injection,
+    isAllInjection,
 } from './types';
 import { findInjectableId, injectableClasses } from './injectable.decorator';
-import {
-    Injection,
-    ContainerSettings as ContainerSettings,
-    DependencyId,
-} from './types';
+import { ContainerSettings as ContainerSettings, DependencyId } from './types';
 import { DEFAULT_SETTINGS } from './presets';
 import { makeInjectionProxy } from './makeInjectionProxy';
+import { makeInjectAllProxy } from './makeInjectAllProxy';
 import { makeDependencyProxy } from './makeDependencyProxy';
 import { middlewaresClasses } from './middleware/middleware.decorator';
 import { MiddlewareManager } from './middleware/MiddlewaresManager';
@@ -209,6 +208,16 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 
     /**
+     * Checks if a dependency with the given ID exists in this container only (does not check parents)
+     * @param dependencyId The identifier of the dependency. Can be a string, symbol, or class constructor (which will be normalized to class name).
+     * @returns True if the dependency exists in this container, false otherwise.
+     */
+    hasOwn(dependencyId: DependencyId | DependencyClass<any>): boolean {
+        const id = this.normalizeDependencyId(dependencyId);
+        return !!(this.inContextProxies[id] || this.dependencies[id]);
+    }
+
+    /**
      * Resolves a dependency either by its dependency ID or through a class constructor for auto-injectable classes.
      * @param param The dependency ID or class constructor.
      * @returns The resolved dependency instance with container metadata.
@@ -284,11 +293,9 @@ export class ProxyDiContainer implements IProxyDiContainer {
         const dependencyInjects: Injections = injectionsOwner[INJECTIONS] || {};
 
         Object.values(dependencyInjects).forEach((injection: Injection) => {
-            const dependencyProxy = makeInjectionProxy(
-                injection,
-                injectionsOwner,
-                this
-            );
+            const dependencyProxy = isAllInjection(injection)
+                ? makeInjectAllProxy(injection, injectionsOwner, this)
+                : makeInjectionProxy(injection, injectionsOwner, this);
             injection.set(injectionsOwner, dependencyProxy);
         });
     }
@@ -315,8 +322,13 @@ export class ProxyDiContainer implements IProxyDiContainer {
             const dependencyInjects: Injections = dependency[INJECTIONS] || {};
 
             Object.values(dependencyInjects).forEach((inject: Injection) => {
-                const value = this.resolve(inject.dependencyId);
-                inject.set(dependency, value);
+                if (!isAllInjection(inject)) {
+                    // Only bake single injections
+                    // Array injections (@injectAll) remain dynamic - array updates on each access,
+                    // but elements are baked through container.resolve()
+                    const value = this.resolve(inject.dependencyId);
+                    inject.set(dependency, value);
+                }
             });
         }
 

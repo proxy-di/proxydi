@@ -8,11 +8,13 @@
 2. **Read all source files** in `src/` — understand implementation
 3. **Read all tests** in `src/__tests__/` — understand expected behavior and edge cases
 
-**This must be done EVERY TIME you work on the project.** ProxyDI is a production library used in other projects. Changes have real impact.
+I want it because I want you have all library and use cases in your context, it's not too big, so just do it. But don't read any others content like other documentation documents.
+
+**This must be done RIGHT AFTER YOU reads this document.** ProxyDI is a production library used in other projects. Changes have real impact. So you must have full picture.
 
 ### Running Tests
 
-Always use `npm run test:ci` when running tests during refactoring. 
+Always use `npm run test:ci` when running tests during refactoring.
 
 After code changes, run `npm run coverage`. Maintain 100% coverage for all code branches.
 
@@ -33,6 +35,10 @@ After making changes, update CHANGELOG.md with the appropriate version and chang
 - [Roadmap](./roadmap.md) — planned improvements and features
 - [Bundler Examples TODO](./bundler-examples-todo.md) — tasks for creating bundler configuration examples
 
+## Feature Documentation
+
+- [@injectAll and ResolveScope](./injectAll.md) — dependency arrays and scope control
+
 ## Architecture Overview
 
 ```mermaid
@@ -47,12 +53,17 @@ graph TB
     auto-injectable classes"]
     Container --> Inject["@inject
     field injections"]
+    Container --> InjectAll["@injectAll
+    array injections"]
 
     Injectable --> AutoResolve[Auto-resolve on first use]
     AutoResolve --> DirectInstance[Direct instance]
 
     Inject --> InjectionProxy["makeInjectionProxy.ts
     Auto-bake after first use"]
+
+    InjectAll --> InjectAllProxy["makeInjectAllProxy.ts
+    Dynamic array (permanent)"]
 
     Container --> Hierarchy[Container hierarchy]
     Hierarchy --> CheckOrigin{"Instance from
@@ -68,6 +79,7 @@ graph TB
     Middleware --> MiddlewareManager[MiddlewaresManager.ts]
 
     style InjectionProxy fill:#51cf66,stroke:#2f9e44,color:#000
+    style InjectAllProxy fill:#ff6b6b,stroke:#c92a2a,color:#000
     style DependencyProxy fill:#ff6b6b,stroke:#c92a2a,color:#000
     style DirectInstance fill:#51cf66,stroke:#2f9e44,color:#000
 ```
@@ -86,11 +98,13 @@ graph TB
 
 - `inject.decorator.ts` — `@inject` field decorator
 - `injectable.decorator.ts` — `@injectable` class decorator
+- `injectAll.decorator.ts` — `@injectAll` field decorator for dependency arrays
 
 **Proxy Implementation:**
 
 - `makeInjectionProxy.ts` — Proxy for `@inject` fields (auto-bakes after first use)
 - `makeDependencyProxy.ts` — Proxy for `resolveInContainerContext` (permanent)
+- `makeInjectAllProxy.ts` — Proxy for `@injectAll` arrays (permanent, dynamic)
 
 **Middleware:**
 

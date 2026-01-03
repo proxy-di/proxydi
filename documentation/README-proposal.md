@@ -195,6 +195,69 @@ The director is registered in the parent container (theater), while the brochure
 
 Notice how we register a specific director instance (`new Director('John Smith')`) of regular class instead of injectable class. ProxyDI works seamlessly with these like instances.
 
+### Inject Multiple Instances
+
+The director needs to work with all actors in the production.
+
+```typescript
+import { injectable, inject, injectAll, ProxyDiContainer } from 'proxydi';
+
+interface Role {
+    line(): string;
+}
+
+class Hamlet implements Role {
+    line() {
+        return 'To be, or not to be';
+    }
+}
+
+class Ophelia implements Role {
+    line() {
+        return 'My lord, I have remembrances of yours';
+    }
+}
+
+class Actor {
+    @inject('role') role: Role;
+
+    constructor(public readonly name: string) {}
+
+    sayLine() {
+        return `${this.name}: "${this.role.line()}"`;
+    }
+}
+
+@injectable()
+class Director {
+    @injectAll(Actor) actors: Actor[];
+
+    rehearse() {
+        this.actors.forEach((actor) => console.log(actor.sayLine()));
+    }
+}
+
+const production = new ProxyDiContainer();
+const director = production.resolve(Director);
+
+// Laurence Olivier plays Hamlet
+const olivierContainer = production.createChildContainer();
+olivierContainer.register(new Hamlet(), 'role');
+olivierContainer.register(new Actor('Laurence Olivier'));
+
+// Claire Bloom plays Ophelia
+const bloomContainer = production.createChildContainer();
+bloomContainer.register(new Ophelia(), 'role');
+bloomContainer.register(new Actor('Claire Bloom'));
+
+director.rehearse();
+// Output:
+// Laurence Olivier: "To be, or not to be"
+// Claire Bloom: "My lord, I have remembrances of yours"
+```
+
+The `@injectAll()` decorator collects all dependencies from the entire container hierarchy recursively. The array updates automatically when dependencies or containers are added or removed.
+
 ## Part 2: Technical Details
 
 Now that you understand the basics, let's explore the technical aspects and advanced features of ProxyDi.
@@ -224,7 +287,7 @@ class Director {
 }
 
 const theater = new ProxyDiContainer({
-    resolveInContainerContext: true  // Enable context resolution
+    resolveInContainerContext: true, // Enable context resolution
 });
 theater.register(Director);
 
@@ -255,6 +318,7 @@ production.bakeInjections();
 ```
 
 Baking also:
+
 - Sets `allowRewriteDependencies` to `false` (prevents further modifications)
 - Recursively bakes all child containers
 

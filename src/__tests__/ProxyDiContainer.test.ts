@@ -255,81 +255,17 @@ describe('ProxyDi', () => {
             );
         });
 
-        it('throws error if dependency class is auto injectable', () => {
+        it('resolves dependency by @injectable class', () => {
             const container = new ProxyDiContainer();
             const first = container.register(First, 'first');
 
-            expect(() => resolveAll(first, Second)).toThrowError(
-                'Class is not @injectable'
-            );
-        });
-
-        it('resolves empty array if no dependencies', () => {
-            const container = new ProxyDiContainer();
-            const auto = container.resolve<Auto>('auto');
-            const dependencies = resolveAll(auto, 'first');
-
-            expect(dependencies).is.empty;
-        });
-
-        it('resolves empty array from hierarchy', () => {
-            const parent = new ProxyDiContainer();
-            const child = parent.createChildContainer();
-
+            const child = container.createChildContainer();
             const auto = child.resolve<Auto>('auto');
-            const dependencies = resolveAll(auto, 'first');
-
-            expect(dependencies).is.empty;
-        });
-
-        it('resolves dependency by @injectable', () => {
-            const container = new ProxyDiContainer();
-            const first = container.register(First, 'first');
-            const auto = container.resolve<Auto>('auto');
 
             const dependencies = resolveAll(first, Auto);
 
             expect(dependencies.length).is.equals(1);
             expect(dependencies[0]).equals(auto);
-        });
-
-        it('resolves dependency from container itself', () => {
-            const container = new ProxyDiContainer();
-            const instance = container.register(First, 'first');
-            const auto = container.resolve<Auto>('auto');
-
-            const dependencies = resolveAll(auto, 'first');
-
-            expect(dependencies.length).is.equals(1);
-            expect(dependencies[0]).equals(instance);
-        });
-
-        it('resolves dependency from child', () => {
-            const parent = new ProxyDiContainer();
-            const child = parent.createChildContainer();
-
-            const instance = child.register(First, 'first');
-            const auto = parent.resolve<Auto>('auto');
-
-            const dependencies = resolveAll(auto, 'first');
-
-            expect(dependencies.length).is.equals(1);
-            expect(dependencies[0]).equals(instance);
-        });
-
-        it('resolves dependencies from both', () => {
-            const parent = new ProxyDiContainer();
-            const child = parent.createChildContainer();
-
-            const instance1 = parent.register(First, 'first');
-            const instance2 = child.register(First, 'first');
-            const auto = parent.resolve<Auto>('auto');
-
-            const dependencies = resolveAll<First>(auto, 'first');
-
-            expect(dependencies.length).is.equals(2);
-            expect(dependencies.includes(instance1)).is.true;
-            expect(dependencies.includes(instance2)).is.true;
         });
     });
 

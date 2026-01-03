@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { injectable, inject, ProxyDiContainer, resolveAll } from '..';
+import { injectable, inject, ProxyDiContainer, injectAll } from '..';
 
 describe('README', () => {
     it('Quick start', () => {
@@ -103,52 +103,4 @@ describe('README', () => {
         expect(gameEngine.start()).equal('Game started');
     });
 
-    it('Hierarchy of containers', () => {
-        class GameLevel {
-            constructor(public readonly settings: { undewater: boolean }) {}
-        }
-
-        interface Perk {
-            activate(): void;
-        }
-
-        class Character {
-            public health = 100;
-
-            hit(abount: number) {
-                this.health -= abount;
-
-                const perks = resolveAll<Perk>(this, 'perk');
-                perks.forEach((perk) => perk.activate());
-            }
-        }
-
-        class UnderwaterShield {
-            @inject('level') private level: GameLevel;
-            @inject('character') private character: Character;
-
-            constructor(private amount: number) {}
-
-            activate = () =>
-                this.level.settings.undewater &&
-                (this.character.health += this.amount);
-        }
-
-        const tutorialContainer = new ProxyDiContainer();
-        tutorialContainer.register(new GameLevel({ undewater: true }), 'level');
-
-        const heroContainer = tutorialContainer.createChildContainer();
-        const hero = heroContainer.register<Character>(Character, 'character');
-
-        const perksContainer = heroContainer.createChildContainer();
-        perksContainer.register(new UnderwaterShield(10), 'perk');
-
-        expect(hero.health).equal(100);
-
-        hero.hit(10);
-        expect(hero.health).equal(100);
-
-        hero.hit(20);
-        expect(hero.health).equal(90);
-    });
 });

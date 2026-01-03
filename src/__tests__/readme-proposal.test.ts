@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
     injectable,
     inject,
+    injectAll,
     ProxyDiContainer,
-    resolveAll,
     ON_CONTAINERIZED,
     middleware,
     MiddlewareContext,
@@ -101,6 +101,60 @@ describe('README Proposal Examples', () => {
 
             expect(brochure.print()).toBe('Hamlet - Directed by John Smith');
         });
+
+        it('Inject Multiple Instances', () => {
+            interface Role {
+                line(): string;
+            }
+
+            class Hamlet implements Role {
+                line() {
+                    return 'To be, or not to be';
+                }
+            }
+
+            class Ophelia implements Role {
+                line() {
+                    return 'My lord, I have remembrances of yours';
+                }
+            }
+
+            class Actor {
+                @inject('role') role: Role;
+
+                constructor(public readonly name: string) {}
+
+                sayLine() {
+                    return `${this.name}: "${this.role.line()}"`;
+                }
+            }
+
+            @injectable()
+            class Director {
+                @injectAll(Actor) actors: Actor[];
+
+                rehearse() {
+                    return this.actors.map((actor) => actor.sayLine());
+                }
+            }
+
+            const production = new ProxyDiContainer();
+            const director = production.resolve(Director);
+
+            const olivierContainer = production.createChildContainer();
+            olivierContainer.register(new Hamlet(), 'role');
+            olivierContainer.register(new Actor('Laurence Olivier'));
+
+            const bloomContainer = production.createChildContainer();
+            bloomContainer.register(new Ophelia(), 'role');
+            bloomContainer.register(new Actor('Claire Bloom'));
+
+            const lines = director.rehearse();
+            expect(lines).toEqual([
+                'Laurence Olivier: "To be, or not to be"',
+                'Claire Bloom: "My lord, I have remembrances of yours"',
+            ]);
+        });
     });
 
     describe('Part 2: Technical Details', () => {
@@ -114,34 +168,6 @@ describe('README Proposal Examples', () => {
             expect(container.settings.allowRegisterAnything).toBe(false);
             expect(container.settings.allowRewriteDependencies).toBe(false);
             expect(container.settings.resolveInContainerContext).toBe(false);
-        });
-
-        it('Resolving All Dependencies', () => {
-            class ActorResolveAll {
-                constructor(public readonly name: string = 'Actor') {}
-            }
-
-            @injectable()
-            class DirectorResolveAll {
-                getAllActors() {
-                    return resolveAll(this, 'actor');
-                }
-            }
-
-            const mainProduction = new ProxyDiContainer();
-            const director = mainProduction.resolve(DirectorResolveAll);
-
-            const mainCast = mainProduction.createChildContainer();
-            mainCast.register(new ActorResolveAll('Laurence Olivier'), 'actor');
-
-            const understudyCast = mainProduction.createChildContainer();
-            understudyCast.register(new ActorResolveAll('Kenneth Branagh'), 'actor');
-
-            const allActors = director.getAllActors();
-            expect(allActors.map((a: any) => a.name)).toEqual([
-                'Laurence Olivier',
-                'Kenneth Branagh',
-            ]);
         });
 
         it('Custom Dependency IDs - Multiple instances', () => {
@@ -318,10 +344,16 @@ describe('README Proposal Examples', () => {
             }
 
             const mainProduction = new ProxyDiContainer();
-            mainProduction.register(new StageContextDefault('Main stage'), 'stage');
+            mainProduction.register(
+                new StageContextDefault('Main stage'),
+                'stage'
+            );
 
             const rehearsal = mainProduction.createChildContainer();
-            rehearsal.register(new StageContextDefault('Rehearsal stage'), 'stage');
+            rehearsal.register(
+                new StageContextDefault('Rehearsal stage'),
+                'stage'
+            );
 
             const director = rehearsal.resolve(DirectorContextDefault);
             expect(director.checkStage()).toBe('Rehearsal stage');
@@ -351,8 +383,12 @@ describe('README Proposal Examples', () => {
             const hamletProduction = theater.createChildContainer();
             hamletProduction.register(ProductionInfo);
 
-            const director = hamletProduction.resolve(DirectorContextResolution);
-            expect(director.announce()).toBe("I'm directing Hamlet on 2024-03-15");
+            const director = hamletProduction.resolve(
+                DirectorContextResolution
+            );
+            expect(director.announce()).toBe(
+                "I'm directing Hamlet on 2024-03-15"
+            );
         });
     });
 });
