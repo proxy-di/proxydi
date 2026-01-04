@@ -36,10 +36,19 @@ export function injectable(dependencyId?: DependencyId): any {
 export function findInjectableId(
     injectable: DependencyClass<any>
 ): DependencyId {
+    // Search in string keys
     for (const [id, DependencyClass] of Object.entries(injectableClasses)) {
         if (DependencyClass === injectable) {
             return id;
         }
     }
+
+    // Search in symbol keys
+    for (const id of Object.getOwnPropertySymbols(injectableClasses)) {
+        if (injectableClasses[id] === injectable) {
+            return id;
+        }
+    }
+
     throw new Error(`Class is not @injectable: ${injectable.name}`);
 }

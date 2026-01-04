@@ -8,7 +8,7 @@ export default defineConfig({
             includeStack: true,
         },
         coverage: {
-            reporter: ['text', 'lcov'],
+            reporter: [['text', { maxCols: 200 }], 'lcov'],
             include: ['src/**/*.ts'],
             exclude: [
                 'node_modules/',

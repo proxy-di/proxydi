@@ -11,7 +11,7 @@ import {
  * Registers an injection for multiple dependencies of the same type.
  *
  * @param dependencyId - Dependency identifier to resolve all instances from container hierarchy.
- * @param scope - Bitwise enum to control where to search (Parent | Current | Children). Defaults to All.
+ * @param scope - Bitwise enum to control where to search (Parent | Current | Children). Defaults to Children.
  * @returns A decorator function for class fields.
  *
  * The decorated field will receive an array of all dependencies with the given ID

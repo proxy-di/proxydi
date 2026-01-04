@@ -376,7 +376,6 @@ describe('@injectAll', () => {
         // Direct test for line 326: child container without dependency
         const parent = new ProxyDiContainer();
 
-
         const manager = parent.register(PluginManager, 'manager');
 
         // Baking should handle child with no matching dependency
@@ -482,5 +481,31 @@ describe('@injectAll', () => {
             'Plugin B',
             'Plugin C',
         ]);
+    });
+
+    it('should work with @injectable class registered with Symbol ID', () => {
+        const symbolId = Symbol('symbolPlugin');
+
+        @injectable(symbolId)
+        class SymbolPlugin {
+            name = 'Symbol Plugin';
+        }
+
+        class SymbolPluginManager {
+            @injectAll(SymbolPlugin) plugins: SymbolPlugin[];
+        }
+
+        const container = new ProxyDiContainer();
+        const manager = container.register(SymbolPluginManager);
+
+        const child1 = container.createChildContainer();
+        child1.resolve(SymbolPlugin);
+
+        const child2 = container.createChildContainer();
+        child2.resolve(SymbolPlugin);
+
+        expect(manager.plugins.length).equal(2);
+        expect(manager.plugins[0].name).equal('Symbol Plugin');
+        expect(manager.plugins[1].name).equal('Symbol Plugin');
     });
 });

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed `findInjectableId()` to support Symbol-based dependency IDs - now correctly searches both string and symbol keys in `injectableClasses` registry
+- Fixed JSDoc in `@injectAll` decorator and `resolveAll()` function to correctly document default scope as `ResolveScope.Children` instead of incorrectly stating `All`
+
+### Added
+
+- Added test coverage for Symbol-based dependency IDs with `@injectable`, `@inject`, and `@injectAll` decorators
+
 ## [[0.2.0](https://www.npmjs.com/package/proxydi/v/0.2.0)] - 2026-01-01
 
 ### Added

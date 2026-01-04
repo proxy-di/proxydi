@@ -140,4 +140,23 @@ describe('inject', () => {
             }
         }).toThrowError('Invalid dependency class');
     });
+
+    it('should work with @injectable class registered with Symbol ID', () => {
+        const symbolId = Symbol('symbolService');
+
+        @injectable(symbolId)
+        class SymbolService {
+            value = 'symbol service';
+        }
+
+        class Consumer {
+            @inject(SymbolService) service: SymbolService;
+        }
+
+        const container = new ProxyDiContainer();
+        const consumer = container.register(Consumer);
+
+        expect(consumer.service).is.not.undefined;
+        expect(consumer.service.value).equal('symbol service');
+    });
 });

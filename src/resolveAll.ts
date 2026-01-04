@@ -8,10 +8,11 @@ import {
 } from './types';
 
 /**
- * Resolves all dependencies from this container and it's children either by its dependency ID or through a class constructor for auto-injectable classes.
- * @param param The dependency ID or class constructor.
+ * Resolves all dependencies from container hierarchy either by its dependency ID or through a class constructor for auto-injectable classes.
+ * @param instance The instance registered in a container (used to find its container reference).
+ * @param dependencyId The dependency ID or class constructor.
  * @param scope Bitwise enum to control where to search (Parent | Current | Children). Defaults to Children.
- * @returns Array with all founded dependence instances, could be empty
+ * @returns Array with all found dependency instances, could be empty
  */
 export function resolveAll<T>(
     instance: any,

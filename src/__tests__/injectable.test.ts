@@ -41,4 +41,18 @@ describe('@injectable()', () => {
             }
         }).toThrowError('@injectable decorator should decorate classes');
     });
+
+    it('should work with Symbol as dependency ID', () => {
+        const symbolId = Symbol('symbolService');
+
+        @injectable(symbolId)
+        class SymbolService {
+            name = "I'm registered with a Symbol!";
+        }
+
+        const container = new ProxyDiContainer();
+
+        const service = container.resolve<SymbolService>(symbolId);
+        expect(service.name).is.equals("I'm registered with a Symbol!");
+    });
 });
