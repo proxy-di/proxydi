@@ -12,9 +12,6 @@
         {
             "path": "../node-ts-examples",
         },
-        // {
-        //     "path": "../../vscode-radnyk-one",
-        // },
     ],
     "settings": {
         "editor.formatOnSave": true,

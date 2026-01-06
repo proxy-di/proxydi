@@ -1,8 +1,8 @@
 ### Rewrite User Documentation with Simplified Syntax
 
-Для цього рефакторингу ми обрали метафору театру. Ну, тобто, уяви, є здання театру, в этом здании проводятся постановки. Ну, для зрителей в этом же здании, ну, работают и готовят эти постановки там, е, актеры, режиссеры. Ну, там... Е-е-е... Крін: І-і-і. Ну, как бы, вот эта метафора позволяет описать иерархическую структуру, ну, природу этой библиотеки. Ну и на основе этой метафоры как бы мы делаем документацию.
+For this refactoring, we chose a theater metaphor. Well, that is, imagine there is a theater building; productions are held in this building. Well, for the audience in the same building, actors and directors work and prepare these productions there. Well, there... Uh... Cringe: And... Well, like, this metaphor allows us to describe the hierarchical structure, the nature of this library. And based on this metaphor, we are making the documentation.
 
-Ну, потому что предыдущая, ну, документация начинала писаться, когда еще не было вот этих ну SPARCL новой синтаксису и инжекта был. И поэтому там надо было ручками вставлять одишники. Ну и как бы весь этап выглядел, ну, как то... Трошки был ортлейтом. Сейчас это все упростилось. Ну и как бы идея в том, что ну... Эту документацию надо переработать и по ходу, мы еще переделали метафору.
+Well, because the previous documentation started to be written when there wasn't this new syntax and inject yet. And so you had to insert IDs manually. And like, the whole stage looked... A bit outdated. Now everything has been simplified. And the idea is that... This documentation needs to be reworked, and along the way, we also redesigned the metaphor.
 
 **Goal:** Radically simplify the entry barrier by showcasing the simplest syntax first.
 
@@ -31,14 +31,14 @@
 
 **Example to add in Hierarchical Containers section:**
 
-Демонструє витягування child dependencies при резолві parent dependency:
+Demonstrates pulling child dependencies when resolving a parent dependency:
 
-- Parent контейнер (Theater) містить Director
-- Director має залежність Script
-- Child контейнер (HamletProduction) містить конкретний Script з назвою "Hamlet"
-- Коли витягуємо Director з child контейнера, він автоматично отримує Script з цього child контейнера
+- Parent container (Theater) contains Director
+- Director has a Script dependency
+- Child container (HamletProduction) contains a specific Script named "Hamlet"
+- When we pull the Director from the child container, they automatically receive the Script from that child container
 
-Тобто: дві сутності, два контейнери (один вкладений в другий), і верхня сутність (Director) отримує доступ до сутності з дочірнього контейнера (Script), коли ми її витягуємо з цього дочірнього контейнера.
+In other words: two entities, two containers (one nested in the other), and the top entity (Director) gets access to the entity from the child container (Script) when we pull it from that child container.
 
 ## Tasks
 
@@ -55,9 +55,9 @@
 
 ### Core Philosophy
 
-**Hierarchical containers - це НЕ ключова фіча.** Це один з елементів філософії фреймворка.
+**Hierarchical containers are NOT the key feature.** They are one of the elements of the framework's philosophy.
 
-**Філософія ProxyDI:** мінімум сутностей, які вирішують максимум задач. Ми не робимо складних структур даних і складних алгоритмів, які з ними працюють.
+**ProxyDI philosophy:** minimum entities that solve maximum tasks. We do not create complex data structures and complex algorithms that work with them.
 
 ### Primary Message of Documentation
 
@@ -105,5 +105,3 @@ This is not about executing a checklist of bullet points. It's about crafting do
 - Readers come away understanding not just HOW to use ProxyDI, but WHY it makes their life easier
 
 Use your full capabilities as a large language model - deep comprehension, analogical reasoning, clear technical writing. The goal is documentation that educates and engages, not template-filled content.
-
-
