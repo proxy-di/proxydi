@@ -11,9 +11,9 @@
 </ul>
 <p>Experimental features:</p>
 <ul>
-<li>Construtor injections (see unit tests for examples)</li>
 <li>Middleware (see unit tests for examples)</li>
 <li>Matches dependencies by unique identifiers or automatically using class names and property names</li>
+<li><a href="">ON_CONTAINERIZED</a> method</li>
 </ul>
 <a id="quick-start" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Quick start<a href="#quick-start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><blockquote>
 <p>If you are using React, you should use the React wrapper for ProxyDi instead of this library directly: <a href="https://github.com/proxy-di/proxydi-react">@proxydi/react</a></p>
@@ -79,6 +79,10 @@ and fill it with dependencies using <a href="https://proxy-di.github.io/proxydi/
 
 <p>In traditional DI containers, this scene would be tricky to shoot - the Director calls Actor's methods while Actor simultaneously needs Director's guidance.</p>
 <p>But take a look, our approach is still the same - we just link dependencies with @inject and use them freely without any worries. ProxyDi handles this tricky issue as elegantly as possible. It does this using JavaScript Proxies, more about Proxies and their impact on performance <a href="#injection-proxy-performance">later</a>.</p>
+<blockquote>
+<p><strong>Why no constructor injection?</strong></p>
+<p>ProxyDi intentionally doesn't support constructor injection. Using constructor parameters makes circular dependencies impossible in many cases.</p>
+</blockquote>
 <a id="hierarchy-of-containers" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Hierarchy of containers<a href="#hierarchy-of-containers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>Another tricky part of DI containers is the ability to create multiple instances of the same class. ProxyDi solves this problem in the simplest way possible - it just does not allow it. When you register a class as a dependency, there is only one instance of this class in the container.</p>
 <p>Instead, it suggests you to use a hierarchy of containers by using <a href="https://proxy-di.github.io/proxydi/classes/ProxyDiContainer.html#createchildcontainer">createChildContainer()</a> method. Child container inherits all parent settings and can resolve exactly the same dependencies as their parent (but parent container does not have access to dependencies registered in its children).</p>
 <p>For example, imagine you are working on a game level, there are many characters on this level, and each character could have many perks.</p>
