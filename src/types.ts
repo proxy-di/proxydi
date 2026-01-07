@@ -6,25 +6,59 @@ export type DependencyClass<T> = new (...args: any[]) => T;
 
 export type Setter = (object: unknown, value: unknown) => void;
 
-export type Injection = {
+export enum ResolveScope {
+    Parent = 1 << 0, // 0b001
+    Current = 1 << 1, // 0b010
+    Children = 1 << 2, // 0b100
+    All = Parent | Current | Children, // 0b111
+}
+
+export type SingleInjection = {
     property: string | symbol;
     dependencyId: DependencyId;
     set: Setter;
+    //isAll?: false;
 };
+
+export type AllInjection = SingleInjection & {
+    // property: string | symbol;
+    // dependencyId: DependencyId;
+    // set: Setter;
+    isAll: true;
+    scope: ResolveScope;
+};
+
+export type Injection = SingleInjection | AllInjection;
+
+/**
+ * Type guard to check if injection is AllInjection
+ */
+export function isAllInjection(
+    injection: Injection
+): injection is AllInjection {
+    return 'isAll' in injection && injection.isAll === true;
+}
 
 export type IProxyDiContainer = {
     id: number;
     settings: Required<ContainerSettings>;
 
-    isKnown: (dependencyId: DependencyId) => boolean;
+    parent?: IProxyDiContainer;
+
+    isKnown: (dependencyId: DependencyId | DependencyClass<any>) => boolean;
 
     injectDependenciesTo: (dependency: any) => void;
 
-    register: (dependency: any, dependencyId: DependencyId) => any;
+    register: (
+        dependency: any,
+        dependencyId?: DependencyId | DependencyClass<any>
+    ) => any;
 
     resolve: <T>(
         dependencyId: DependencyId | DependencyClass<any>
     ) => T & ContainerizedDependency;
+
+    hasOwn: <T>(dependencyId: DependencyId | DependencyClass<any>) => boolean;
 
     createChildContainer: () => IProxyDiContainer;
     children: IProxyDiContainer[];

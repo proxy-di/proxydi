@@ -16,7 +16,6 @@ Core features:
 
 Experimental features:
 
-- Construtor injections (see unit tests for examples)
 - Middleware (see unit tests for examples)
 - Matches dependencies by unique identifiers or automatically using class names and property names
 - [ON_CONTAINERIZED]() method
@@ -182,6 +181,10 @@ console.log(actor.play());
 In traditional DI containers, this scene would be tricky to shoot - the Director calls Actor's methods while Actor simultaneously needs Director's guidance.
 
 But take a look, our approach is still the same - we just link dependencies with @inject and use them freely without any worries. ProxyDi handles this tricky issue as elegantly as possible. It does this using JavaScript Proxies, more about Proxies and their impact on performance [later](#injection-proxy-performance).
+
+> **Why no constructor injection?**
+>
+> ProxyDi intentionally doesn't support constructor injection. Using constructor parameters makes circular dependencies impossible in many cases.
 
 ## Hierarchy of containers
 
