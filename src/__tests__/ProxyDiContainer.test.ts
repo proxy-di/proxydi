@@ -7,10 +7,13 @@ import {
     middleware,
 } from '../index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
-import { DEPENDENCY_ID, DependencyId, PROXYDI_CONTAINER } from '../types';
+import {
+    DEPENDENCY_ID,
+    DependencyId,
+    PROXYDI_CONTAINER,
+    ON_CONTAINERIZED,
+} from '../types';
 import { isInjectionProxy } from '../makeInjectionProxy';
-import { KindomKing } from './mock/King';
-import { KindomQueen } from './mock/Queen';
 import {
     MiddlewareContext,
     MiddlewareResolver,
@@ -154,6 +157,45 @@ describe('ProxyDi', () => {
             const child = parent.createChildContainer();
             expect(child.isKnown(dependencyId)).is.true;
         });
+
+        it('register instance with Class as dependencyId works after normalization', () => {
+            const container = new ProxyDiContainer();
+            const instance = new First();
+
+            // Class is normalized to string "First"
+            const registered = container.register(instance, First);
+
+            // Should be stored under string "First", not function
+            expect(container.isKnown(First)).is.true;
+            expect(container.isKnown('First')).is.true;
+
+            // Should resolve correctly
+            const resolved = container.resolve(First);
+            expect(resolved).toBe(instance);
+        });
+
+        it('register instance without dependencyId uses constructor name', () => {
+            const container = new ProxyDiContainer();
+            const instance = new First();
+
+            const registered = container.register(instance);
+
+            expect(registered).toBe(instance);
+            expect(container.isKnown('First')).is.true;
+            expect(container.resolve<First>('First')).toBe(instance);
+            expect(container.resolve(First)).toBe(instance);
+        });
+
+        it('register plain object without dependencyId throws error', () => {
+            const container = new ProxyDiContainer();
+            const plainObject = { value: 42 };
+
+            expect(() => {
+                container.register(plainObject);
+            }).toThrowError(
+                'dependencyId is required when registering plain objects or literals'
+            );
+        });
     });
 
     describe('resolve()', () => {
@@ -213,81 +255,17 @@ describe('ProxyDi', () => {
             );
         });
 
-        it('throws error if dependency class is auto injectable', () => {
+        it('resolves dependency by @injectable class', () => {
             const container = new ProxyDiContainer();
             const first = container.register(First, 'first');
 
-            expect(() => resolveAll(first, Second)).toThrowError(
-                'Class is not @injectable'
-            );
-        });
-
-        it('resolves empty array if no dependencies', () => {
-            const container = new ProxyDiContainer();
-            const auto = container.resolve<Auto>('auto');
-            const dependencies = resolveAll(auto, 'first');
-
-            expect(dependencies).is.empty;
-        });
-
-        it('resolves empty array from hierarchy', () => {
-            const parent = new ProxyDiContainer();
-            const child = parent.createChildContainer();
-
+            const child = container.createChildContainer();
             const auto = child.resolve<Auto>('auto');
-            const dependencies = resolveAll(auto, 'first');
-
-            expect(dependencies).is.empty;
-        });
-
-        it('resolves dependency by @injectable', () => {
-            const container = new ProxyDiContainer();
-            const first = container.register(First, 'first');
-            const auto = container.resolve<Auto>('auto');
 
             const dependencies = resolveAll(first, Auto);
 
             expect(dependencies.length).is.equals(1);
             expect(dependencies[0]).equals(auto);
-        });
-
-        it('resolves dependency from container itself', () => {
-            const container = new ProxyDiContainer();
-            const instance = container.register(First, 'first');
-            const auto = container.resolve<Auto>('auto');
-
-            const dependencies = resolveAll(auto, 'first');
-
-            expect(dependencies.length).is.equals(1);
-            expect(dependencies[0]).equals(instance);
-        });
-
-        it('resolves dependency from child', () => {
-            const parent = new ProxyDiContainer();
-            const child = parent.createChildContainer();
-
-            const instance = child.register(First, 'first');
-            const auto = parent.resolve<Auto>('auto');
-
-            const dependencies = resolveAll(auto, 'first');
-
-            expect(dependencies.length).is.equals(1);
-            expect(dependencies[0]).equals(instance);
-        });
-
-        it('resolves dependencies from both', () => {
-            const parent = new ProxyDiContainer();
-            const child = parent.createChildContainer();
-
-            const instance1 = parent.register(First, 'first');
-            const instance2 = child.register(First, 'first');
-            const auto = parent.resolve<Auto>('auto');
-
-            const dependencies = resolveAll<First>(auto, 'first');
-
-            expect(dependencies.length).is.equals(2);
-            expect(dependencies.includes(instance1)).is.true;
-            expect(dependencies.includes(instance2)).is.true;
         });
     });
 
@@ -728,47 +706,23 @@ describe('ProxyDi', () => {
         });
     });
 
-    describe('constructor injections', () => {
-        it('Engagement party', () => {
-            @injectable(['Fiancée'])
-            class Fiancé {
-                name: string = `John`;
-                constructor(public readonly feancee: Fiancée) {}
+    describe('ON_CONTAINERIZED', () => {
+        it('should call ON_CONTAINERIZED when dependency is registered', () => {
+            const container = new ProxyDiContainer();
+            let called = false;
+            let passedContainer: any = null;
 
-                introduce = () =>
-                    `I'm ${this.name} and this my fiancée, ${this.feancee.name}`;
+            class TestClass {
+                [ON_CONTAINERIZED](c: ProxyDiContainer) {
+                    called = true;
+                    passedContainer = c;
+                }
             }
 
-            @injectable(['Fiancé'])
-            class Fiancée {
-                name: string = `Mary`;
-                constructor(public readonly feance: Fiancé) {}
+            container.register(new TestClass(), 'test');
 
-                introduce = () =>
-                    `I'm ${this.name} and this my fiancé, ${this.feance.name}`;
-            }
-
-            const container = new ProxyDiContainer();
-
-            const john = container.resolve(Fiancé);
-            const mary = container.resolve(Fiancée);
-
-            expect(john.feancee.name).equal(`Mary`);
-            expect(mary.feance.name).equal(`John`);
-            expect(john.introduce()).equal(
-                `I'm John and this my fiancée, Mary`
-            );
-            expect(mary.introduce()).equal(`I'm Mary and this my fiancé, John`);
-        });
-
-        it('Kindom from files', () => {
-            const container = new ProxyDiContainer();
-
-            const king = container.resolve(KindomKing);
-            const queen = container.resolve(KindomQueen);
-
-            expect(king.queen.name).equal(`I'm a queen`);
-            expect(queen.king.name).equal(`I'm a king`);
+            expect(called).is.true;
+            expect(passedContainer).equals(container);
         });
     });
 

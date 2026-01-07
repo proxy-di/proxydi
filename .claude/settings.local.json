@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm audit:*)",
+      "WebFetch(domain:proxy-di.github.io)",
+      "Skill(doc-coauthoring)",
+      "Bash(git checkout:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run coverage:*)",
+      "Bash(npm run test:ci:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(grep:*)",
+      "WebSearch"
+    ]
+  }
+}

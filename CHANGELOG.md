@@ -2,8 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+### Added
+
+- Added test coverage for Symbol-based dependency IDs with `@injectable`, `@inject`, and `@injectAll` decorators
+
+## [[0.2.0](https://www.npmjs.com/package/proxydi/v/0.2.0)] - 2026-01-01
+
+### Added
+
+- `register()` now accepts class constructors as `dependencyId` - automatically normalized to class name
+- `isKnown()` now accepts class constructors - automatically normalized to class name
+- `register(instance)` without explicit `dependencyId` now works for class instances - uses `instance.constructor.name`
+
+### Fixed
+
+- Fixed bug where passing class constructor as `dependencyId` in `register()` would store dependency under function reference instead of class name, making it impossible to resolve with `resolve(Class)`
+
+### Removed
+
+- **BREAKING:** Constructor injection support removed from `@injectable` decorator. This experimental feature caused issues with circular dependencies and added unnecessary complexity. Use field injection with `@inject` decorator instead.
 
 ## [[0.1.3](https://www.npmjs.com/package/proxydi/v/0.1.3)] - 2025-03-26
 

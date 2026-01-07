@@ -81,4 +81,82 @@ describe('inject', () => {
         expect(injected.injectable).is.not.undefined;
         expect(injected.injectable.name).equal("I'm injectable!");
     });
+
+    it('should inject non-injectable class via class.name as named instances', () => {
+        class RegularClass {
+            value = 'regular';
+        }
+
+        class Consumer {
+            @inject(RegularClass) dependency: RegularClass;
+        }
+
+        const container = new ProxyDiContainer();
+        container.register(new RegularClass(), 'RegularClass');
+        const consumer = container.register(Consumer);
+
+        expect(consumer.dependency).is.not.undefined;
+        expect(consumer.dependency.value).equal('regular');
+    });
+
+    it('should inject non-injectable class via class.name as just instances', () => {
+        class RegularClass {
+            value = 'regular';
+        }
+
+        class Consumer {
+            @inject(RegularClass) dependency: RegularClass;
+        }
+
+        const container = new ProxyDiContainer();
+        container.register(new RegularClass());
+        const consumer = container.register(Consumer);
+
+        expect(consumer.dependency).is.not.undefined;
+        expect(consumer.dependency.value).equal('regular');
+    });
+
+    it('should inject non-injectable class via class.name as classes', () => {
+        class RegularClass {
+            value = 'regular';
+        }
+
+        class Consumer {
+            @inject(RegularClass) dependency: RegularClass;
+        }
+
+        const container = new ProxyDiContainer();
+        container.register(RegularClass);
+        const consumer = container.register(Consumer);
+
+        expect(consumer.dependency).is.not.undefined;
+        expect(consumer.dependency.value).equal('regular');
+    });
+
+    it('should throw error for invalid dependency class', () => {
+        expect(() => {
+            class Consumer {
+                @inject((() => {}) as any) dependency: any;
+            }
+        }).toThrowError('Invalid dependency class');
+    });
+
+    it('should work with @injectable class registered with Symbol ID', () => {
+        const symbolId = Symbol('symbolService');
+
+        @injectable(symbolId)
+        class SymbolService {
+            value = 'symbol service';
+        }
+
+        class Consumer {
+            @inject(SymbolService) service: SymbolService;
+        }
+
+        const container = new ProxyDiContainer();
+        const consumer = container.register(Consumer);
+
+        expect(consumer.service).is.not.undefined;
+        expect(consumer.service.value).equal('symbol service');
+    });
 });

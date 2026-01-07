@@ -84,19 +84,19 @@ export class MiddlewareManager {
 }
 
 function isRegistrator(
-    middleware: any | MiddlewareRegistrator
-): middleware is MiddlewareRegistrator {
+    middleware: any | MiddlewareRegistrator<unknown>
+): middleware is MiddlewareRegistrator<unknown> {
     return !!middleware.onRegister;
 }
 
 function isRemover(
-    middleware: any | MiddlewareRemover
-): middleware is MiddlewareRemover {
+    middleware: any | MiddlewareRemover<unknown>
+): middleware is MiddlewareRemover<unknown> {
     return !!middleware.onRemove;
 }
 
 function isResolver(
-    middleware: any | MiddlewareResolver
-): middleware is MiddlewareResolver {
+    middleware: any | MiddlewareResolver<any>
+): middleware is MiddlewareResolver<any> {
     return !!middleware.onResolve;
 }
