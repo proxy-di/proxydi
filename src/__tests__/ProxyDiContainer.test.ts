@@ -241,6 +241,28 @@ describe('ProxyDi', () => {
         });
     });
 
+    describe('resolveAll()', () => {
+        it('throws error if instance not in container', () => {
+            const second = new Second();
+            expect(() => resolveAll<First>(second, 'first')).toThrowError(
+                'Instance is not registered in any container'
+            );
+        });
+
+        it('resolves dependency by @injectable class', () => {
+            const container = new ProxyDiContainer();
+            const first = container.register(First, 'first');
+
+            const child = container.createChildContainer();
+            const auto = child.resolve<Auto>('auto');
+
+            const dependencies = resolveAll(first, Auto);
+
+            expect(dependencies.length).is.equals(1);
+            expect(dependencies[0]).equals(auto);
+        });
+    });
+
     describe('rewritable dependencies', () => {
         it('rewrire dependencies', () => {
             const container = new ProxyDiContainer();
@@ -266,28 +288,6 @@ describe('ProxyDi', () => {
 
             container.register(new First('rewrited'), 'first');
             expect(second.first.name).equals('rewrited');
-        });
-    });
-
-    describe('resolveAll()', () => {
-        it('throws error if instance not in container', () => {
-            const second = new Second();
-            expect(() => resolveAll<First>(second, 'first')).toThrowError(
-                'Instance is not registered in any container'
-            );
-        });
-
-        it('resolves dependency by @injectable class', () => {
-            const container = new ProxyDiContainer();
-            const first = container.register(First, 'first');
-
-            const child = container.createChildContainer();
-            const auto = child.resolve<Auto>('auto');
-
-            const dependencies = resolveAll(first, Auto);
-
-            expect(dependencies.length).is.equals(1);
-            expect(dependencies[0]).equals(auto);
         });
     });
 
