@@ -1,6 +1,6 @@
 import {
     INJECTIONS,
-    DEPENDENCY_ID,
+    DEPENDENCY_IDS,
     IProxyDiContainer as IProxyDiContainer,
     ContainerizedDependency as ContainerizedDependency,
     DependencyClass,
@@ -9,9 +9,17 @@ import {
     ON_CONTAINERIZED,
     Injection,
     isAllInjection,
+    ResolveScope,
+    DependencyId,
+    DuplicateStrategy,
+    RegisterOptions,
 } from './types';
-import { findInjectableId, injectableClasses } from './injectable.decorator';
-import { ContainerSettings as ContainerSettings, DependencyId } from './types';
+import {
+    findInjectableId,
+    findInjectableIds,
+    injectableClasses,
+} from './injectable.decorator';
+import { ContainerSettings as ContainerSettings } from './types';
 import { DEFAULT_SETTINGS } from './presets';
 import { makeInjectionProxy } from './makeInjectionProxy';
 import { makeInjectAllProxy } from './makeInjectAllProxy';
@@ -49,13 +57,20 @@ export class ProxyDiContainer implements IProxyDiContainer {
     /**
      * Holds dependency instances registered particular in this container.
      */
-    private dependencies: Record<DependencyId, ContainerizedDependency> = {};
+    private dependencies: Record<DependencyId, ContainerizedDependency[]> = {};
 
     /**
      * Holds proxies for dependencies registered in parent containers to provide for it dependencies from this container
      */
-    private inContextProxies: Record<DependencyId, ContainerizedDependency> =
-        {};
+    private inContextProxies: Record<
+        DependencyId,
+        Map<ContainerizedDependency, ContainerizedDependency>
+    > = {};
+
+    /**
+     * Mapping from dependency instance to all IDs under which it was registered
+     */
+    private dependencyIds = new WeakMap<object, Set<DependencyId>>();
 
     /**
      * Settings that control the behavior of the container and it's children
@@ -107,49 +122,39 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * In case of class, it will be instantiated without any parameters.
      *
      * @param dependency The dependency instance or dependency class.
-     * @param dependencyId The unique identifier for the dependency in this container. Can be a string, symbol, or class constructor (which will be normalized to class name).
-     * @throws Error if dependency is already registered and rewriting is not allowed or if invalid dependency (not object) is provided and this it now allowed.
+     * @param dependencyId The unique identifier(s) for the dependency in this container. Can be a string, symbol, array or class constructor (which will be normalized to class name or @injectable IDs).
      * @returns Dependency instance, registered in container
      */
     register<T>(
         DependencyClass: DependencyClass<T>,
-        dependencyId?: DependencyId | DependencyClass<any>
+        options?:
+            | RegisterOptions
+            | DependencyId
+            | DependencyId[]
+            | DependencyClass<any>
     ): T & ContainerizedDependency;
     register<T>(
         dependency: T extends new (...args: any[]) => any ? never : T,
-        dependencyId?: DependencyId | DependencyClass<any>
+        options?:
+            | RegisterOptions
+            | DependencyId
+            | DependencyId[]
+            | DependencyClass<any>
     ): T & ContainerizedDependency;
     register(
         dependency: any,
-        dependecyId?: DependencyId | DependencyClass<any>
+        options?:
+            | RegisterOptions
+            | DependencyId
+            | DependencyId[]
+            | DependencyClass<any>
     ): any {
-        let id: DependencyId;
-        if (dependecyId) {
-            id = this.normalizeDependencyId(dependecyId);
-        } else if (typeof dependency === 'function') {
-            try {
-                id = findInjectableId(dependency);
-            } catch {
-                id = dependency.name;
-            }
-        } else if (
-            dependency?.constructor?.name &&
-            dependency.constructor.name !== 'Object'
-        ) {
-            id = dependency.constructor.name;
-        } else {
-            throw new Error(
-                'dependencyId is required when registering plain objects or literals'
-            );
-        }
-
-        if (this.dependencies[id]) {
-            if (!this.settings.allowRewriteDependencies) {
-                throw new Error(
-                    `ProxyDi already has dependency for ${String(id)}`
-                );
-            }
-        }
+        const normalizedOptions = this.normalizeRegisterOptions(options);
+        const ids = this.normalizeDependencyIds(
+            dependency,
+            normalizedOptions.dependencyId
+        );
+        const strategy = normalizedOptions.duplicateStrategy;
 
         let instance: any;
         const isClass = typeof dependency === 'function';
@@ -169,25 +174,20 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
         if (isObject) {
             instance[PROXYDI_CONTAINER] = this;
-            instance[DEPENDENCY_ID] = id;
+            instance[DEPENDENCY_IDS] = ids;
             instance[ON_CONTAINERIZED] && instance[ON_CONTAINERIZED](this);
         }
 
         this.injectDependenciesTo(instance);
-        this.dependencies[id] = instance;
+
+        ids.forEach((id) => this.addDependencyInstance(id, instance, strategy));
 
         const constructorName = instance.constructor?.name;
         if (constructorName && middlewaresClasses[constructorName]) {
             this.middlewareManager.add(instance);
         }
 
-        let context: MiddlewareContext<any> = {
-            container: this,
-            dependencyId: id,
-            dependency: instance,
-        };
-
-        this.middlewareManager.onRegister(context);
+        this.notifyOnRegister(instance, ids);
 
         return instance;
     }
@@ -197,14 +197,51 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * @param dependencyId The identifier of the dependency. Can be a string, symbol, or class constructor (which will be normalized to class name).
      * @returns True if the dependency is known, false otherwise.
      */
-    isKnown(dependencyId: DependencyId | DependencyClass<any>): boolean {
-        const id = this.normalizeDependencyId(dependencyId);
-        return !!(
-            this.inContextProxies[id] ||
-            this.dependencies[id] ||
-            (this.parent && this.parent.isKnown(id)) ||
-            injectableClasses[id]
-        );
+    isKnown(
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope: ResolveScope = ResolveScope.Parent | ResolveScope.Current
+    ): boolean {
+        const ids = this.normalizeToIds(dependencyId);
+        for (const id of ids) {
+            if (this.isKnownById(id, scope)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private isKnownById(
+        dependencyId: DependencyId,
+        scope: ResolveScope
+    ): boolean {
+        if (this.hasOwn(dependencyId)) {
+            return true;
+        }
+
+        if (scope & ResolveScope.Parent) {
+            if (this.parent && this.parent.isKnownById(dependencyId, scope)) {
+                return true;
+            }
+        }
+
+        if (scope & ResolveScope.Children) {
+            for (const child of this.children) {
+                if (
+                    child.isKnownById(
+                        dependencyId,
+                        ResolveScope.Current | ResolveScope.Children
+                    )
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        if (injectableClasses[dependencyId]) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -213,8 +250,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * @returns True if the dependency exists in this container, false otherwise.
      */
     hasOwn(dependencyId: DependencyId | DependencyClass<any>): boolean {
-        const id = this.normalizeDependencyId(dependencyId);
-        return !!(this.inContextProxies[id] || this.dependencies[id]);
+        const ids = this.normalizeToIds(dependencyId);
+        return ids.some((id) => {
+            const deps = this.dependencies[id];
+            return !!(deps && deps.length);
+        });
     }
 
     /**
@@ -223,67 +263,259 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * @returns The resolved dependency instance with container metadata.
      * @throws Error if the dependency cannot be found or is not auto injectable.
      */
-    resolve<T>(dependencyId: DependencyId): T & ContainerizedDependency;
+    resolve<T>(
+        dependency: DependencyId,
+        scope?: ResolveScope
+    ): T & ContainerizedDependency;
     resolve<T extends DependencyClass<any>>(
-        SomeClass: T
+        dependency: T,
+        scope?: ResolveScope
     ): InstanceType<T> & ContainerizedDependency;
     resolve<T>(
-        dependency: DependencyId | DependencyClass<any>
+        dependency: DependencyId | DependencyClass<any>,
+        scope: ResolveScope = ResolveScope.Parent | ResolveScope.Current
     ): T & ContainerizedDependency {
-        if (typeof dependency === 'function') {
-            let id: DependencyId;
-            try {
-                id = findInjectableId(dependency);
-            } catch {
-                id = dependency.name;
-            }
+        const ids = this.normalizeToIds(dependency);
 
-            return this.resolve(id);
+        for (const id of ids) {
+            const resolved = this.resolveById<T>(id, scope);
+            if (resolved) {
+                const context: MiddlewareContext<T> = {
+                    container: this,
+                    dependencyId: id,
+                    dependency: resolved,
+                };
+                const result = this.middlewareManager.onResolve(context);
+                return result.dependency;
+            }
         }
 
-        if (!this.isKnown(dependency)) {
+        // Auto create injectable by id
+        const injectableClassEntry = injectableClasses[ids[0]];
+        if (injectableClassEntry && injectableClassEntry.length) {
+            const injectableClass = injectableClassEntry[0];
+            const injectableIds = findInjectableIds(injectableClass);
+            this.register(injectableClass, injectableIds);
+            return this.resolve(injectableClass, scope);
+        }
+
+        if (typeof dependency === 'function') {
             throw new Error(
-                `Can't resolve unknown dependency: ${String(dependency)}`
+                `Can't resolve unknown dependency: ${String(ids[0])}`
             );
         }
 
-        let context: MiddlewareContext<T> = {
-            container: this,
-            dependencyId: dependency,
-            dependency: this.resolveImpl(dependency),
-        };
-
-        context = this.middlewareManager.onResolve(context);
-
-        return context.dependency;
+        throw new Error(`Can't resolve unknown dependency: ${String(ids[0])}`);
     }
 
-    private resolveImpl = <T>(
+    resolveAll<T>(
+        dependencyId: DependencyId,
+        scope?: ResolveScope
+    ): (T & ContainerizedDependency)[];
+    resolveAll<T extends DependencyClass<any>>(
+        dependencyId: T,
+        scope?: ResolveScope
+    ): (InstanceType<T> & ContainerizedDependency)[];
+    resolveAll<T>(
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope: ResolveScope = ResolveScope.Children
+    ): (T & ContainerizedDependency)[] {
+        if (typeof dependencyId === 'function') {
+            const ids = findInjectableIds(dependencyId);
+            const collected: (T & ContainerizedDependency)[] = [];
+            ids.forEach((id) => {
+                collected.push(...this.resolveAll<T>(id, scope));
+            });
+            return this.dedupe(collected) as (T & ContainerizedDependency)[];
+        }
+
+        return this.recursiveResolveAll<T>(this, dependencyId, scope);
+    }
+
+    private resolveById<T>(
+        dependencyId: DependencyId,
+        scope: ResolveScope
+    ): (T & ContainerizedDependency) | undefined {
+        const instance =
+            this.findFirstInScope<T>(dependencyId, scope) ??
+            this.autoRegisterInjectable<T>(dependencyId);
+
+        if (!instance) {
+            return undefined;
+        }
+
+        const ownerContainer =
+            (instance as any)[PROXYDI_CONTAINER] || this.parent;
+
+        if (
+            ownerContainer &&
+            ownerContainer !== this &&
+            typeof instance === 'object' &&
+            this.settings.resolveInContainerContext
+        ) {
+            return this.getContextProxy(dependencyId, instance);
+        }
+
+        return instance as T & ContainerizedDependency;
+    }
+
+    private autoRegisterInjectable<T>(
         dependencyId: DependencyId
-    ): T & ContainerizedDependency => {
-        const proxy = this.inContextProxies[dependencyId];
-        if (proxy) {
-            return proxy as T & ContainerizedDependency;
+    ): (T & ContainerizedDependency) | undefined {
+        const InjectableClasses = injectableClasses[dependencyId];
+        if (!InjectableClasses || InjectableClasses.length === 0) {
+            return undefined;
+        }
+        const InjectableClass = InjectableClasses[0];
+        const ids = findInjectableIds(InjectableClass);
+        this.register(InjectableClass, ids);
+        return this.findFirstInScope<T>(dependencyId, ResolveScope.Current);
+    }
+
+    private getContextProxy<T>(
+        dependencyId: DependencyId,
+        instance: ContainerizedDependency
+    ): T & ContainerizedDependency {
+        if (!this.inContextProxies[dependencyId]) {
+            this.inContextProxies[dependencyId] = new Map();
         }
 
-        const instance = this.findDependency<T>(dependencyId);
-        if (instance) {
-            if (
-                instance[PROXYDI_CONTAINER] !== this &&
-                typeof instance === 'object' &&
-                this.settings.resolveInContainerContext
-            ) {
-                const proxy = makeDependencyProxy(instance);
-                this.injectDependenciesTo(proxy);
-                this.inContextProxies[dependencyId] = proxy;
-                return proxy as T & ContainerizedDependency;
+        const proxies = this.inContextProxies[dependencyId];
+
+        if (proxies.has(instance)) {
+            return proxies.get(instance) as T & ContainerizedDependency;
+        }
+
+        const proxy = makeDependencyProxy(instance) as T & ContainerizedDependency;
+        (proxy as any)[PROXYDI_CONTAINER] = this;
+        const ids = (instance as any)[DEPENDENCY_IDS];
+        if (ids && Array.isArray(ids) && ids.length) {
+            (proxy as any)[DEPENDENCY_IDS] = ids;
+        }
+        this.injectDependenciesTo(proxy);
+        proxies.set(instance, proxy);
+
+        return proxy;
+    }
+
+    private recursiveResolveAll<T>(
+        container: ProxyDiContainer,
+        dependencyId: DependencyId,
+        scope: ResolveScope = ResolveScope.All
+    ): (T & ContainerizedDependency)[] {
+        if ((scope as any) === 0) {
+            throw new Error('ResolveScope must have at least one flag set');
+        }
+
+        let all: (T & ContainerizedDependency)[] = [];
+
+        if (scope & ResolveScope.Current) {
+            const deps = container.dependencies[dependencyId] as
+                | (T & ContainerizedDependency)[]
+                | undefined;
+            if (deps?.length) {
+                all = all.concat(deps);
             }
-            return instance;
         }
 
-        const InjectableClass = injectableClasses[dependencyId];
-        return this.register(InjectableClass, dependencyId);
-    };
+        if (scope & ResolveScope.Parent) {
+            const parent = container.parent;
+            if (parent) {
+                const deps = parent.dependencies[dependencyId] as
+                    | (T & ContainerizedDependency)[]
+                    | undefined;
+                if (deps?.length) {
+                    all = all.concat(deps);
+                }
+            }
+        }
+
+        if (scope & ResolveScope.Children) {
+            for (const child of container.children) {
+                const childScope = ResolveScope.Children | ResolveScope.Current;
+                const childResults = this.recursiveResolveAll<T>(
+                    child,
+                    dependencyId,
+                    childScope
+                );
+                all = all.concat(childResults);
+            }
+        }
+
+        return this.dedupe(all);
+    }
+
+    private findFirstInScope<T>(
+        dependencyId: DependencyId,
+        scope: ResolveScope
+    ): (T & ContainerizedDependency) | undefined {
+        if ((scope as any) === 0) {
+            throw new Error('ResolveScope must have at least one flag set');
+        }
+
+        // Current
+        if (scope & ResolveScope.Current) {
+            const proxyList = this.inContextProxies[dependencyId];
+            if (proxyList && proxyList.size) {
+                const first = proxyList.values().next().value;
+                if (first) {
+                    return first as T & ContainerizedDependency;
+                }
+            }
+
+            const deps = this.dependencies[dependencyId];
+            if (deps && deps.length) {
+                return deps[0] as T & ContainerizedDependency;
+            }
+        }
+
+        // Parent
+        if (scope & ResolveScope.Parent) {
+            const parent = this.parent;
+            if (parent) {
+                const parentScope =
+                    scope & (ResolveScope.Current | ResolveScope.Parent);
+                const resolved = parent.findFirstInScope<T>(
+                    dependencyId,
+                    parentScope
+                );
+                if (resolved) {
+                    return resolved;
+                }
+            }
+        }
+
+        // Children
+        if (scope & ResolveScope.Children) {
+            for (const child of this.children) {
+                const childScope =
+                    ResolveScope.Current | ResolveScope.Children;
+                const resolved = child.findFirstInScope<T>(
+                    dependencyId,
+                    childScope
+                );
+                if (resolved) {
+                    return resolved;
+                }
+            }
+        }
+
+        return undefined;
+    }
+
+    private dedupe<T>(items: (T & ContainerizedDependency)[]) {
+        const unique: (T & ContainerizedDependency)[] = [];
+        const seen = new Set<any>();
+
+        for (const item of items) {
+            if (!seen.has(item)) {
+                seen.add(item);
+                unique.push(item);
+            }
+        }
+
+        return unique;
+    }
 
     /**
      * Injects dependencies to the given object based on its defined injections metadata. Does not affect the container.
@@ -305,34 +537,37 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * @returns This container to allow use along with constructor.
      */
     registerInjectables() {
-        for (const [dependencyId, InjectableClass] of Object.entries(
-            injectableClasses
-        )) {
-            this.register(InjectableClass, dependencyId);
+        const uniqueClasses = new Set<DependencyClass<any>>();
+        for (const injectableList of Object.values(injectableClasses)) {
+            injectableList.forEach((InjectableClass) =>
+                uniqueClasses.add(InjectableClass)
+            );
         }
+
+        uniqueClasses.forEach((InjectableClass) => {
+            const ids = findInjectableIds(InjectableClass);
+            this.register(InjectableClass, ids);
+        });
         return this;
     }
 
     /**
-     * Finalizes dependency injections, prevents further rewriting of dependencies,
-     * and recursively bakes injections for child containers.
+     * Finalizes dependency injections and recursively bakes injections for child containers.
      */
     bakeInjections() {
-        for (const dependency of Object.values(this.dependencies)) {
+        for (const dependency of this.getAllOwnDependencies()) {
             const dependencyInjects: Injections = dependency[INJECTIONS] || {};
 
             Object.values(dependencyInjects).forEach((inject: Injection) => {
                 if (!isAllInjection(inject)) {
-                    // Only bake single injections
-                    // Array injections (@injectAll) remain dynamic - array updates on each access,
-                    // but elements are baked through container.resolve()
-                    const value = this.resolve(inject.dependencyId);
+                    const value = this.resolve(
+                        inject.dependencyId,
+                        inject.scope ?? ResolveScope.Current | ResolveScope.Parent
+                    );
                     inject.set(dependency, value);
                 }
             });
         }
-
-        this.settings.allowRewriteDependencies = false;
 
         for (const child of Object.values(this._children)) {
             child.bakeInjections();
@@ -352,32 +587,12 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * @param dependencyOrId The dependency instance or dependency identifier to remove.
      */
     remove(dependencyOrId: DependencyId | ContainerizedDependency) {
-        const id = isDependency(dependencyOrId)
-            ? dependencyOrId[DEPENDENCY_ID]
-            : dependencyOrId;
-        const dependency = this.dependencies[id];
-        if (dependency) {
-            const constructorName = dependency.constructor?.name;
-            if (constructorName && middlewaresClasses[constructorName]) {
-                this.middlewareManager.remove(dependency);
-            }
-
-            const dependencyInjects: Injections = dependency[INJECTIONS]
-                ? dependency[INJECTIONS]
-                : {};
-            Object.values(dependencyInjects).forEach((inject: Injection) => {
-                inject.set(dependency, undefined);
-            });
-            delete (dependency as any)[DEPENDENCY_ID];
-
-            delete this.dependencies[id];
-
-            this.middlewareManager.onRemove({
-                container: this,
-                dependencyId: id,
-                dependency,
-            });
+        if (isDependency(dependencyOrId)) {
+            this.removeByInstance(dependencyOrId);
+            return;
         }
+
+        this.removeById(dependencyOrId);
     }
 
     /**
@@ -385,12 +600,13 @@ export class ProxyDiContainer implements IProxyDiContainer {
      * recursively destroying child containers and removing itself from its parent.
      */
     destroy() {
-        const allDependencies = Object.values(this.dependencies);
+        const allDependencies = this.getAllOwnDependencies();
         for (const dependency of allDependencies) {
-            this.remove(dependency);
+            this.removeByInstance(dependency);
         }
 
         this.dependencies = {};
+        this.inContextProxies = {};
 
         for (const child of Object.values(this._children)) {
             child.destroy();
@@ -402,44 +618,6 @@ export class ProxyDiContainer implements IProxyDiContainer {
             this.parent.removeChild(this.id);
             (this as any).parent = undefined;
         }
-    }
-
-    /**
-     * Recursively finds a dependency by its ID from this container or its parent.
-     * @param dependencyId The identifier of the dependency to find.
-     * @returns The dependency if found, otherwise undefined.
-     */
-    private findDependency<T>(
-        dependencyId: DependencyId
-    ): (T & ContainerizedDependency) | undefined {
-        const dependency = this.dependencies[dependencyId];
-        if (!dependency && this.parent) {
-            const parentDependency = this.parent.findDependency<
-                T & ContainerizedDependency
-            >(dependencyId);
-
-            return parentDependency;
-        }
-
-        return dependency as T & ContainerizedDependency;
-    }
-
-    /**
-     * Normalizes dependency identifier by converting class constructors to their names.
-     * @param id The dependency identifier (string, symbol, or class constructor).
-     * @returns Normalized dependency identifier (string or symbol).
-     */
-    private normalizeDependencyId(
-        id: DependencyId | DependencyClass<any>
-    ): DependencyId {
-        if (typeof id === 'function') {
-            try {
-                return findInjectableId(id);
-            } catch {
-                return id.name;
-            }
-        }
-        return id;
     }
 
     /**
@@ -486,6 +664,242 @@ export class ProxyDiContainer implements IProxyDiContainer {
             delete this._children[id];
         }
     }
+
+    private normalizeDependencyIds(
+        dependency: any,
+        dependecyId?: DependencyId | DependencyId[] | DependencyClass<any>
+    ): DependencyId[] {
+        if (dependecyId) {
+            if (typeof dependecyId === 'function') {
+                return this.normalizeToIds(dependecyId);
+            }
+
+            let ids: DependencyId[] = Array.isArray(dependecyId)
+                ? [...dependecyId]
+                : [dependecyId];
+
+            if (Array.isArray(dependecyId)) {
+                if (typeof dependency === 'function' && dependency.name) {
+                    ids.push(dependency.name);
+                } else if (
+                    dependency?.constructor &&
+                    dependency.constructor !== Object &&
+                    dependency.constructor.name
+                ) {
+                    ids.push(dependency.constructor.name);
+                }
+            }
+
+            return Array.from(new Set(ids));
+        }
+
+        if (typeof dependency === 'function') {
+            try {
+                return findInjectableIds(dependency);
+            } catch {
+                return [dependency.name];
+            }
+        } else if (
+            dependency?.constructor &&
+            dependency.constructor !== Object &&
+            dependency.constructor.name
+        ) {
+            try {
+                return findInjectableIds(dependency.constructor);
+            } catch {
+                return [dependency.constructor.name];
+            }
+        } else {
+            throw new Error(
+                'dependencyId is required when registering plain objects or literals'
+            );
+        }
+    }
+
+    private normalizeRegisterOptions(
+        options?:
+            | RegisterOptions
+            | DependencyId
+            | DependencyId[]
+            | DependencyClass<any>
+    ): {
+        dependencyId?: DependencyId | DependencyId[] | DependencyClass<any>;
+        duplicateStrategy: DuplicateStrategy;
+    } {
+        const defaultStrategy = DuplicateStrategy.ReplaceIfSingleElseAdd;
+        if (
+            typeof options === 'string' ||
+            typeof options === 'symbol' ||
+            typeof options === 'function' ||
+            Array.isArray(options)
+        ) {
+            return {
+                dependencyId: options as any,
+                duplicateStrategy: defaultStrategy,
+            };
+        }
+
+        return {
+            dependencyId: options?.dependencyId,
+            duplicateStrategy: options?.duplicateStrategy ?? defaultStrategy,
+        };
+    }
+
+    private normalizeToIds(
+        dependencyId: DependencyId | DependencyClass<any>
+    ): DependencyId[] {
+        if (typeof dependencyId === 'function') {
+            try {
+                return findInjectableIds(dependencyId);
+            } catch {
+                return [dependencyId.name];
+            }
+        }
+
+        return [dependencyId];
+    }
+
+    private addDependencyInstance(
+        dependencyId: DependencyId,
+        instance: any,
+        strategy: DuplicateStrategy
+    ) {
+        const existing = this.dependencies[dependencyId];
+        if (!existing || existing.length === 0) {
+            this.dependencies[dependencyId] = [instance];
+        } else {
+            if (strategy === DuplicateStrategy.Throw) {
+                throw new Error(
+                    `Dependency with id "${String(dependencyId)}" already exists`
+                );
+            }
+
+            if (strategy === DuplicateStrategy.AlwaysReplace) {
+                this.dependencies[dependencyId] = [instance];
+            } else if (strategy === DuplicateStrategy.AlwaysAdd) {
+                if (!existing.includes(instance)) {
+                    existing.push(instance);
+                }
+            } else {
+                // ReplaceIfSingleElseAdd
+                if (existing.length === 1) {
+                    this.dependencies[dependencyId] = [instance];
+                } else if (!existing.includes(instance)) {
+                    existing.push(instance);
+                }
+            }
+        }
+
+        if (typeof instance === 'object' && instance !== null) {
+            let idsSet = this.dependencyIds.get(instance);
+            if (!idsSet) {
+                idsSet = new Set<DependencyId>();
+                this.dependencyIds.set(instance, idsSet);
+            }
+            idsSet.add(dependencyId);
+            (instance as any)[DEPENDENCY_IDS] = Array.from(idsSet);
+        }
+    }
+
+    private notifyOnRegister(
+        instance: ContainerizedDependency,
+        ids: DependencyId[]
+    ) {
+        ids.forEach((dependencyId) => {
+            const context: MiddlewareContext<any> = {
+                container: this,
+                dependencyId,
+                dependency: instance,
+            };
+
+            this.middlewareManager.onRegister(context);
+        });
+    }
+
+    private getAllOwnDependencies(): ContainerizedDependency[] {
+        const unique = new Set<ContainerizedDependency>();
+        Object.values(this.dependencies).forEach((deps) => {
+            deps.forEach((dep) => unique.add(dep));
+        });
+        return Array.from(unique);
+    }
+
+    private removeById(dependencyId: DependencyId) {
+        const deps = this.dependencies[dependencyId];
+        if (!deps || deps.length === 0) {
+            return;
+        }
+
+        deps.slice().forEach((dep) => {
+            this.removeDependencyBinding(dep, dependencyId);
+        });
+
+        delete this.dependencies[dependencyId];
+    }
+
+    private removeByInstance(instance: ContainerizedDependency) {
+        if (typeof instance !== 'object' || instance === null) {
+            // For primitives, just remove any bindings by scanning
+            Object.keys(this.dependencies).forEach((key) => {
+                this.removeDependencyBinding(instance, key as any);
+            });
+            return;
+        }
+
+        const ids = this.dependencyIds.get(instance);
+        if (!ids) {
+            return;
+        }
+
+        Array.from(ids).forEach((id) => this.removeDependencyBinding(instance, id));
+    }
+
+    private removeDependencyBinding(
+        instance: ContainerizedDependency,
+        dependencyId: DependencyId
+    ) {
+        const deps = this.dependencies[dependencyId];
+        if (deps) {
+            const index = deps.indexOf(instance);
+            if (index !== -1) {
+                deps.splice(index, 1);
+            }
+                if (deps.length === 0) {
+                    delete this.dependencies[dependencyId];
+                }
+            }
+
+        if (typeof instance === 'object' && instance !== null) {
+            const idsSet = this.dependencyIds.get(instance);
+            if (idsSet) {
+                idsSet.delete(dependencyId);
+                (instance as any)[DEPENDENCY_IDS] = Array.from(idsSet);
+                if (idsSet.size === 0) {
+                    this.dependencyIds.delete(instance);
+                    delete (instance as any)[DEPENDENCY_IDS];
+                    delete (instance as any)[PROXYDI_CONTAINER];
+
+                    const constructorName = (instance as any).constructor?.name;
+                    if (constructorName && middlewaresClasses[constructorName]) {
+                        this.middlewareManager.remove(instance);
+                    }
+
+                    const dependencyInjects: Injections = (instance as any)[INJECTIONS]
+                        ? (instance as any)[INJECTIONS]
+                        : {};
+                    Object.values(dependencyInjects).forEach((inject: Injection) => {
+                        inject.set(instance, undefined);
+                    });
+                }
+            }
+        }
+
+        this.middlewareManager.onRemove({
+            container: this,
+            dependencyId,
+            dependency: instance,
+        });
+    }
 }
 
 /**
@@ -498,6 +912,6 @@ function isDependency(
 ): dependencyOrId is ContainerizedDependency {
     return (
         typeof dependencyOrId === 'object' &&
-        !!(dependencyOrId as ContainerizedDependency)[DEPENDENCY_ID]
+        !!(dependencyOrId as any)[DEPENDENCY_IDS]
     );
 }
