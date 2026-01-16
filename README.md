@@ -345,6 +345,77 @@ Therefore, after the container has been baked, the performance impact becomes ze
 
 To be continued...
 
+## Multiple Dependencies (v0.3.0+)
+
+Sometimes you need to register multiple instances for the same dependency ID (e.g., plugins, event handlers).
+
+### Registering multiple instances
+
+You can register multiple dependencies with the same ID using `DuplicateStrategy.AlwaysAdd`. By default, `register()` uses `DuplicateStrategy.ReplaceIfSingleElseAdd` which maintains backward compatibility (single instance replaces existing).
+
+```typescript
+import { DuplicateStrategy } from 'proxydi';
+
+const container = new ProxyDiContainer();
+
+// Register multiple handlers
+container.register(new Handler1(), {
+    dependencyId: 'EventHandler',
+    duplicateStrategy: DuplicateStrategy.AlwaysAdd,
+});
+container.register(new Handler2(), {
+    dependencyId: 'EventHandler',
+    duplicateStrategy: DuplicateStrategy.AlwaysAdd,
+});
+```
+
+### Resolving multiple instances
+
+Use `@injectAll` or `resolveAll` to retrieve all registered instances:
+
+```typescript
+class EventService {
+    @injectAll('EventHandler') private handlers: EventHandler[];
+
+    emit(event) {
+        this.handlers.forEach((h) => h.handle(event));
+    }
+}
+```
+
+> **Note:** `resolve('EventHandler')` or `@inject('EventHandler')` will return the **first** registered instance and log a warning if multiple instances exist.
+
+### Auto-injectable arrays
+
+You can also use `@injectable` with an array of IDs. These classes will be automatically discovered and registered when using `resolveAll`.
+
+```typescript
+@injectable(['EventHandler'])
+class Handler1 {}
+
+@injectable(['EventHandler'])
+class Handler2 {}
+
+// ... later ...
+const handlers = container.resolveAll('EventHandler'); // [Handler1, Handler2]
+```
+
+## Resolve Scope
+
+You can control where dependencies are searched using `ResolveScope` in both `@inject` and `@injectAll`.
+
+```typescript
+import { ResolveScope } from 'proxydi';
+
+// Search only in children containers
+@injectAll('Plugin', ResolveScope.Children)
+private plugins: Plugin[];
+
+// Search only in the current container (ignore parent)
+@inject('Config', ResolveScope.Current)
+private localConfig: Config;
+```
+
 ## Motivation
 
 The world and software changes, they become more complex over time. But the main imperative in software development stays the same - managing the complexity. Despite the tendency that software is written more often by artificial intelligence than humans, complexity stays complexity. The less complex conceptions any kind of intelligence should operate, the more efficient it will be.

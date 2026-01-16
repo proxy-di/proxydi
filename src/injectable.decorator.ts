@@ -1,6 +1,13 @@
 import { DependencyClass, DependencyId } from './types';
 
-export const injectableClasses: Record<DependencyId, DependencyClass<any>> = {};
+export const injectableClasses: Record<
+    DependencyId,
+    DependencyClass<any>[]
+> = {};
+const injectableIdsByClass = new WeakMap<
+    DependencyClass<any>,
+    DependencyId[]
+>();
 
 /**
  * Registers a class as an automatically injectable for dependency injection container.
@@ -12,7 +19,9 @@ export const injectableClasses: Record<DependencyId, DependencyClass<any>> = {};
  * will create an instance of the decorated class. However, if a container already has an instance with that identifier
  * prior to resolution, the decorated class will be ignored by that container.
  */
-export function injectable(dependencyId?: DependencyId): any {
+export function injectable(
+    dependencyId?: DependencyId | DependencyId[]
+): any {
     return function (
         value: DependencyClass<any>,
         context: ClassDecoratorContext
@@ -21,34 +30,69 @@ export function injectable(dependencyId?: DependencyId): any {
             throw new Error('@injectable decorator should decorate classes');
         }
 
-        const name = dependencyId ? dependencyId : context.name!;
+        const explicitIds = dependencyId
+            ? Array.isArray(dependencyId)
+                ? dependencyId
+                : [dependencyId]
+            : [];
 
-        if (injectableClasses[name]) {
-            throw new Error(
-                `ProxyDi has already regisered dependency ${String(name)} by @injectable`
-            );
-        }
+        const ids: DependencyId[] = Array.from(
+            new Set<DependencyId>([...explicitIds, context.name!])
+        );
 
-        injectableClasses[name] = value;
+        ids.forEach((id) => {
+            if (!injectableClasses[id]) {
+                injectableClasses[id] = [];
+            }
+            const list = injectableClasses[id];
+            if (!list.includes(value)) {
+                list.push(value);
+            }
+        });
+
+        injectableIdsByClass.set(value, ids);
     };
 }
 
 export function findInjectableId(
     injectable: DependencyClass<any>
 ): DependencyId {
-    // Search in string keys
-    for (const [id, DependencyClass] of Object.entries(injectableClasses)) {
-        if (DependencyClass === injectable) {
-            return id;
-        }
+    const ids = findInjectableIds(injectable, true);
+    if (ids.length === 0) {
+        throw new Error(`Class is not @injectable: ${injectable.name}`);
     }
+    return ids[0];
+}
 
-    // Search in symbol keys
-    for (const id of Object.getOwnPropertySymbols(injectableClasses)) {
-        if (injectableClasses[id] === injectable) {
-            return id;
-        }
+export function findInjectableIds(
+    injectable: DependencyClass<any>,
+    allowEmpty = false
+): DependencyId[] {
+    const ids =
+        injectableIdsByClass.get(injectable) ||
+        getInjectableIdsFromRegistry(injectable);
+    if (ids.length === 0 && !allowEmpty) {
+        throw new Error(`Class is not @injectable: ${injectable.name}`);
     }
+    return ids;
+}
 
-    throw new Error(`Class is not @injectable: ${injectable.name}`);
+function getInjectableIdsFromRegistry(
+    injectable: DependencyClass<any>
+): DependencyId[] {
+    const ids: DependencyId[] = [];
+
+    Object.entries(injectableClasses).forEach(([id, classes]) => {
+        if (classes.includes(injectable)) {
+            ids.push(id);
+        }
+    });
+
+    Object.getOwnPropertySymbols(injectableClasses).forEach((id) => {
+        if (injectableClasses[id]?.includes(injectable)) {
+            ids.push(id);
+        }
+    });
+
+    return ids;
 }
