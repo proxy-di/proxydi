@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
     inject,
     ProxyDiContainer,
@@ -260,6 +260,46 @@ describe('ProxyDi', () => {
 
             expect(dependencies.length).is.equals(1);
             expect(dependencies[0]).equals(auto);
+        });
+
+        it('resolves multiple injectables with same ID', () => {
+            const container = new ProxyDiContainer();
+
+            @injectable('multi')
+            class Multi1 {}
+
+            @injectable('multi')
+            class Multi2 {}
+
+            const all = container.resolveAll<any>(
+                'multi',
+                ResolveScope.Current
+            );
+            expect(all.length).toBe(2);
+            expect(all.some((i) => i instanceof Multi1)).toBe(true);
+            expect(all.some((i) => i instanceof Multi2)).toBe(true);
+        });
+
+        it('resolve() warns if multiple dependencies found', () => {
+            const container = new ProxyDiContainer();
+            const spy = vi.spyOn(console, 'warn');
+            spy.mockImplementation(() => {});
+
+            container.register(new First(), {
+                dependencyId: 'multi',
+                duplicateStrategy: DuplicateStrategy.AlwaysAdd,
+            });
+            container.register(new First(), {
+                dependencyId: 'multi',
+                duplicateStrategy: DuplicateStrategy.AlwaysAdd,
+            });
+
+            container.resolve('multi', ResolveScope.Current);
+
+            expect(spy).toHaveBeenCalledWith(
+                expect.stringContaining('Warning: Found 2 dependencies')
+            );
+            spy.mockRestore();
         });
     });
 

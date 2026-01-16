@@ -329,7 +329,19 @@ export class ProxyDiContainer implements IProxyDiContainer {
             return this.dedupe(collected) as (T & ContainerizedDependency)[];
         }
 
-        return this.recursiveResolveAll<T>(this, dependencyId, scope);
+        const results = this.recursiveResolveAll<T>(this, dependencyId, scope);
+        if (results.length > 0) {
+            return results;
+        }
+
+        if (scope & ResolveScope.Current) {
+            const registered = this.autoRegisterAllInjectables<T>(dependencyId);
+            if (registered.length > 0) {
+                return registered;
+            }
+        }
+
+        return [];
     }
 
     private resolveById<T>(
@@ -372,6 +384,28 @@ export class ProxyDiContainer implements IProxyDiContainer {
         return this.findFirstInScope<T>(dependencyId, ResolveScope.Current);
     }
 
+    private autoRegisterAllInjectables<T>(
+        dependencyId: DependencyId
+    ): (T & ContainerizedDependency)[] {
+        const InjectableClasses = injectableClasses[dependencyId];
+        if (!InjectableClasses || InjectableClasses.length === 0) {
+            return [];
+        }
+
+        const instances: (T & ContainerizedDependency)[] = [];
+
+        InjectableClasses.forEach((InjectableClass) => {
+            const ids = findInjectableIds(InjectableClass);
+            const instance = this.register(InjectableClass, {
+                dependencyId: ids,
+                duplicateStrategy: DuplicateStrategy.AlwaysAdd,
+            });
+            instances.push(instance);
+        });
+
+        return instances;
+    }
+
     private getContextProxy<T>(
         dependencyId: DependencyId,
         instance: ContainerizedDependency
@@ -386,7 +420,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
             return proxies.get(instance) as T & ContainerizedDependency;
         }
 
-        const proxy = makeDependencyProxy(instance) as T & ContainerizedDependency;
+        const proxy = makeDependencyProxy(instance) as T &
+            ContainerizedDependency;
         (proxy as any)[PROXYDI_CONTAINER] = this;
         const ids = (instance as any)[DEPENDENCY_IDS];
         if (ids && Array.isArray(ids) && ids.length) {
@@ -465,6 +500,15 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
             const deps = this.dependencies[dependencyId];
             if (deps && deps.length) {
+                if (deps.length > 1) {
+                    console.warn(
+                        `[ProxyDI] Warning: Found ${
+                            deps.length
+                        } dependencies for "${String(
+                            dependencyId
+                        )}" when resolving single instance. Returning the first one.`
+                    );
+                }
                 return deps[0] as T & ContainerizedDependency;
             }
         }
@@ -488,8 +532,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         // Children
         if (scope & ResolveScope.Children) {
             for (const child of this.children) {
-                const childScope =
-                    ResolveScope.Current | ResolveScope.Children;
+                const childScope = ResolveScope.Current | ResolveScope.Children;
                 const resolved = child.findFirstInScope<T>(
                     dependencyId,
                     childScope
@@ -562,7 +605,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
                 if (!isAllInjection(inject)) {
                     const value = this.resolve(
                         inject.dependencyId,
-                        inject.scope ?? ResolveScope.Current | ResolveScope.Parent
+                        inject.scope ??
+                            ResolveScope.Current | ResolveScope.Parent
                     );
                     inject.set(dependency, value);
                 }
@@ -851,7 +895,9 @@ export class ProxyDiContainer implements IProxyDiContainer {
             return;
         }
 
-        Array.from(ids).forEach((id) => this.removeDependencyBinding(instance, id));
+        Array.from(ids).forEach((id) =>
+            this.removeDependencyBinding(instance, id)
+        );
     }
 
     private removeDependencyBinding(
@@ -864,10 +910,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
             if (index !== -1) {
                 deps.splice(index, 1);
             }
-                if (deps.length === 0) {
-                    delete this.dependencies[dependencyId];
-                }
+            if (deps.length === 0) {
+                delete this.dependencies[dependencyId];
             }
+        }
 
         if (typeof instance === 'object' && instance !== null) {
             const idsSet = this.dependencyIds.get(instance);
@@ -880,16 +926,23 @@ export class ProxyDiContainer implements IProxyDiContainer {
                     delete (instance as any)[PROXYDI_CONTAINER];
 
                     const constructorName = (instance as any).constructor?.name;
-                    if (constructorName && middlewaresClasses[constructorName]) {
+                    if (
+                        constructorName &&
+                        middlewaresClasses[constructorName]
+                    ) {
                         this.middlewareManager.remove(instance);
                     }
 
-                    const dependencyInjects: Injections = (instance as any)[INJECTIONS]
+                    const dependencyInjects: Injections = (instance as any)[
+                        INJECTIONS
+                    ]
                         ? (instance as any)[INJECTIONS]
                         : {};
-                    Object.values(dependencyInjects).forEach((inject: Injection) => {
-                        inject.set(instance, undefined);
-                    });
+                    Object.values(dependencyInjects).forEach(
+                        (inject: Injection) => {
+                            inject.set(instance, undefined);
+                        }
+                    );
                 }
             }
         }
