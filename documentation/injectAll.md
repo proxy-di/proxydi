@@ -8,16 +8,17 @@ ResolveScope allows explicit control over where to search (parent, current, chil
 
 ## How It Works
 
-`@injectAll` creates permanent Proxy (via `makeInjectAllProxy.ts`) that rebuilds array on each access by calling `resolveAll()`. This means array always reflects current container hierarchy state.
+`@injectAll` creates permanent Proxy (via `makeInjectAllProxy.ts`) that rebuilds array on each access by calling `container.resolveAll()`. This means array always reflects current container hierarchy state.
 
 ```typescript
 @injectable()
 class PluginManager {
-    @injectAll('plugin') plugins: Plugin[];  // Dynamic array
+    @injectAll('plugin') plugins: Plugin[]; // Dynamic array
 }
 ```
 
 `ResolveScope` bitwise enum controls where to search:
+
 - `ResolveScope.Children` - all children recursively (default)
 - `ResolveScope.Current` - current container only
 - `ResolveScope.Parent` - parent container only
@@ -69,8 +70,8 @@ graph TB
 ## Code Organization
 
 - `injectAll.decorator.ts` — `@injectAll(dependencyId, scope?)` decorator
-- `makeInjectAllProxy.ts` — Proxy that calls `resolveAll()` on each access
-- `resolveAll.ts` — Recursively resolves dependencies by scope
+- `makeInjectAllProxy.ts` — Proxy that calls `container.resolveAll()` on each access
+- `resolveAll.ts` — Wrapper for `container.resolveAll()`
 - `types.ts` — `AllInjection` type and `ResolveScope` enum
 
 ## Architectural Decisions
@@ -92,21 +93,23 @@ Elements ARE baked through `container.resolve()` which triggers normal injection
 
 ## Performance Characteristics
 
-| Component | Performance | Reason |
-|-----------|-------------|---------|
-| Array access (`plugins.length`) | ~100x slower | Proxy calls `resolveAll()` on every access |
-| Element access (`plugins[0].name`) | Fast after first use | Elements baked through `container.resolve()` |
-| Adding child container | No impact | Lazy resolution on next array access |
+| Component                          | Performance          | Reason                                               |
+| ---------------------------------- | -------------------- | ---------------------------------------------------- |
+| Array access (`plugins.length`)    | ~100x slower         | Proxy calls `container.resolveAll()` on every access |
+| Element access (`plugins[0].name`) | Fast after first use | Elements baked through `container.resolve()`         |
+| Adding child container             | No impact            | Lazy resolution on next array access                 |
 
 **Recommendation:** Cache array reference if accessing multiple times in loop:
+
 ```typescript
-const plugins = this.plugins;  // One resolveAll() call
-plugins.forEach(p => p.activate());  // Fast
+const plugins = this.plugins; // One resolveAll() call
+plugins.forEach((p) => p.activate()); // Fast
 ```
 
 Avoid:
+
 ```typescript
-this.plugins.forEach(p => p.activate());  // resolveAll() on .forEach AND on each iteration
+this.plugins.forEach((p) => p.activate()); // resolveAll() on .forEach AND on each iteration
 ```
 
 ## Related Documentation

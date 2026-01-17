@@ -5,7 +5,7 @@ import {
     PROXYDI_CONTAINER,
 } from './types';
 import { InjectionProxy } from './makeInjectionProxy';
-import { resolveAll } from './resolveAll';
+
 
 export const makeInjectAllProxy = <T>(
     injection: AllInjection,
@@ -19,8 +19,7 @@ export const makeInjectAllProxy = <T>(
         }
 
         // Use existing resolveAll function with scope from injection
-        return resolveAll<T>(
-            injectionOwner,
+        return ownerContainer.resolveAll<T>(
             injection.dependencyId,
             injection.scope
         );

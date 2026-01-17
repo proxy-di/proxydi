@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `ProxyDiContainer.resolveAll()` method for resolving multiple dependencies directly from container instance
+
 - Added test coverage for Symbol-based dependency IDs with `@injectable`, `@inject`, and `@injectAll` decorators
 
 ## [[0.2.0](https://www.npmjs.com/package/proxydi/v/0.2.0)] - 2026-01-01

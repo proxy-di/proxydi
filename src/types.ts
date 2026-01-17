@@ -58,6 +58,11 @@ export type IProxyDiContainer = {
         dependencyId: DependencyId | DependencyClass<any>
     ) => T & ContainerizedDependency;
 
+    resolveAll<T>(
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope?: ResolveScope
+    ): (T & ContainerizedDependency)[];
+
     hasOwn: <T>(dependencyId: DependencyId | DependencyClass<any>) => boolean;
 
     createChildContainer: () => IProxyDiContainer;

@@ -344,25 +344,16 @@ const container = new ProxyDiContainer({
 
 ### Resolving All Dependencies
 
-Sometimes you need to get all instances of a specific type from a container and all its children. For example, a director might want to gather all actors from all casts:
+Sometimes you need to get all instances of a specific type from a container and all its children. For example, gathering all actors from all casts:
 
 ```typescript
-import { injectable, inject, ProxyDiContainer, resolveAll } from 'proxydi';
+import { injectable, inject, ProxyDiContainer } from 'proxydi';
 
 class Actor {
     constructor(public readonly name: string = 'Actor') {}
 }
 
-@injectable()
-class Director {
-    getAllActors() {
-        // resolveAll needs a containerized instance to know which container to search
-        return resolveAll(this, 'actor');
-    }
-}
-
 const mainProduction = new ProxyDiContainer();
-const director = mainProduction.resolve(Director);
 
 // Main cast
 const mainCast = mainProduction.createChildContainer();
@@ -372,12 +363,13 @@ mainCast.register(new Actor('Laurence Olivier'), 'actor');
 const understudyCast = mainProduction.createChildContainer();
 understudyCast.register(new Actor('Kenneth Branagh'), 'actor');
 
-const allActors = director.getAllActors();
+// Resolve all actors from main container and all children
+const allActors = mainProduction.resolveAll<Actor>('actor');
 console.log(allActors.map((a) => a.name));
 // Output: ['Laurence Olivier', 'Kenneth Branagh']
 ```
 
-The `resolveAll()` function takes an instance that's registered in a container and searches that container plus all its children recursively.
+The `resolveAll()` method searches in the container plus all its children recursively.
 
 ### Custom Dependency IDs
 

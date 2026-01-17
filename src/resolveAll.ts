@@ -1,8 +1,8 @@
 import { findInjectableId } from './injectable.decorator';
 import {
     ContainerizedDependency,
+    DependencyClass,
     DependencyId,
-    IProxyDiContainer,
     PROXYDI_CONTAINER,
     ResolveScope,
 } from './types';
@@ -19,7 +19,7 @@ export function resolveAll<T>(
     dependencyId: DependencyId,
     scope?: ResolveScope
 ): (T & ContainerizedDependency)[];
-export function resolveAll<T extends new (...args: any[]) => any>(
+export function resolveAll<T extends DependencyClass<any>>(
     instance: any,
     SomeClass: T,
     scope?: ResolveScope
@@ -39,60 +39,5 @@ export function resolveAll<T>(
         throw new Error('Instance is not registered in any container');
     }
 
-    return recursiveResolveAll<T>(container, dependencyId, scope);
-}
-
-function recursiveResolveAll<T>(
-    container: IProxyDiContainer,
-    dependencyId: DependencyId,
-    scope: ResolveScope = ResolveScope.All
-): (T & ContainerizedDependency)[] {
-    if ((scope as any) === 0) {
-        throw new Error('ResolveScope must have at least one flag set');
-    }
-
-    let all: (T & ContainerizedDependency)[] = [];
-
-    // Current - search in current container only
-    if (scope & ResolveScope.Current) {
-        if (container.hasOwn(dependencyId)) {
-            all.push(container.resolve<T>(dependencyId));
-        }
-    }
-
-    // Parent - search up the hierarchy
-    if (scope & ResolveScope.Parent) {
-        let parent = container.parent;
-        if (parent && parent.isKnown(dependencyId)) {
-            const dependency = parent.resolve<T>(dependencyId);
-            all.push(dependency);
-        }
-    }
-
-    // Children - recursively search down the hierarchy
-    if (scope & ResolveScope.Children) {
-        for (const child of container.children) {
-            // Recursive call with Children + Current (always include Current for children)
-            const childScope = ResolveScope.Children | ResolveScope.Current;
-            const childResults = recursiveResolveAll<T>(
-                child,
-                dependencyId,
-                childScope
-            );
-            all = all.concat(childResults);
-        }
-    }
-
-    // Remove duplicates - same instance should not appear twice
-    const unique: (T & ContainerizedDependency)[] = [];
-    const seen = new Set<any>();
-
-    for (const item of all) {
-        if (!seen.has(item)) {
-            seen.add(item);
-            unique.push(item);
-        }
-    }
-
-    return unique;
+    return container.resolveAll<T>(dependencyId, scope);
 }

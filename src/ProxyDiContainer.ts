@@ -9,6 +9,7 @@ import {
     ON_CONTAINERIZED,
     Injection,
     isAllInjection,
+    ResolveScope,
 } from './types';
 import { findInjectableId, injectableClasses } from './injectable.decorator';
 import { ContainerSettings as ContainerSettings, DependencyId } from './types';
@@ -440,6 +441,76 @@ export class ProxyDiContainer implements IProxyDiContainer {
             }
         }
         return id;
+    }
+
+    public resolveAll<T>(
+        dependencyId: DependencyId,
+        scope?: ResolveScope
+    ): (T & ContainerizedDependency)[];
+    public resolveAll<T extends DependencyClass<any>>(
+        SomeClass: T,
+        scope?: ResolveScope
+    ): (InstanceType<T> & ContainerizedDependency)[];
+    public resolveAll<T>(
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope: ResolveScope = ResolveScope.Children
+    ): (T & ContainerizedDependency)[] {
+        const id = this.normalizeDependencyId(dependencyId);
+        return this.recursiveResolveAll<T>(id, scope);
+    }
+
+    private recursiveResolveAll<T>(
+        dependencyId: DependencyId,
+        scope: ResolveScope = ResolveScope.All
+    ): (T & ContainerizedDependency)[] {
+        if ((scope as any) === 0) {
+            throw new Error('ResolveScope must have at least one flag set');
+        }
+
+        let all: (T & ContainerizedDependency)[] = [];
+
+        // Current - search in current container only
+        if (scope & ResolveScope.Current) {
+            if (this.hasOwn(dependencyId)) {
+                all.push(this.resolve<T>(dependencyId));
+            }
+        }
+
+        // Parent - search up the hierarchy
+        if (scope & ResolveScope.Parent) {
+            // eslint-disable-next-line @typescript-eslint/no-this-alias
+            let parent = this.parent;
+            if (parent && parent.isKnown(dependencyId)) {
+                const dependency = parent.resolve<T>(dependencyId);
+                all.push(dependency);
+            }
+        }
+
+        // Children - recursively search down the hierarchy
+        if (scope & ResolveScope.Children) {
+            for (const child of this.children) {
+                // Recursive call with Children + Current (always include Current for children)
+                const childScope = ResolveScope.Children | ResolveScope.Current;
+                const childResults = (child as any).recursiveResolveAll(
+                    dependencyId,
+                    childScope
+                );
+                all = all.concat(childResults);
+            }
+        }
+
+        // Remove duplicates - same instance should not appear twice
+        const unique: (T & ContainerizedDependency)[] = [];
+        const seen = new Set<any>();
+
+        for (const item of all) {
+            if (!seen.has(item)) {
+                seen.add(item);
+                unique.push(item);
+            }
+        }
+
+        return unique;
     }
 
     /**
