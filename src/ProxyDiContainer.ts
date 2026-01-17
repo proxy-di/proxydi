@@ -194,18 +194,46 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 
     /**
-     * Checks if a dependency with the given ID is known to the container or its ancestors which means that it can be resolved by this container
+     * Checks if a dependency with the given ID is known to the container based on the scope.
      * @param dependencyId The identifier of the dependency. Can be a string, symbol, or class constructor (which will be normalized to class name).
+     * @param scope Bitwise enum to control where to search. Defaults to Current | Parent (searches up the hierarchy).
      * @returns True if the dependency is known, false otherwise.
      */
-    isKnown(dependencyId: DependencyId | DependencyClass<any>): boolean {
+    isKnown(
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope: ResolveScope = ResolveScope.Current | ResolveScope.Parent
+    ): boolean {
         const id = this.normalizeDependencyId(dependencyId);
-        return !!(
-            this.inContextProxies[id] ||
-            this.dependencies[id] ||
-            (this.parent && this.parent.isKnown(id)) ||
-            injectableClasses[id]
-        );
+
+        // @injectable classes are always available
+        if (injectableClasses[id]) {
+            return true;
+        }
+
+        // Current - check in this container
+        if (scope & ResolveScope.Current) {
+            if (this.inContextProxies[id] || this.dependencies[id]) {
+                return true;
+            }
+        }
+
+        // Parent - recursively check up the hierarchy
+        if (scope & ResolveScope.Parent) {
+            if (this.parent && this.parent.isKnown(id, ResolveScope.Current | ResolveScope.Parent)) {
+                return true;
+            }
+        }
+
+        // Children - recursively check down the hierarchy
+        if (scope & ResolveScope.Children) {
+            for (const child of this.children) {
+                if (child.isKnown(id, ResolveScope.Current | ResolveScope.Children)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -221,15 +249,18 @@ export class ProxyDiContainer implements IProxyDiContainer {
     /**
      * Resolves a dependency either by its dependency ID or through a class constructor for auto-injectable classes.
      * @param param The dependency ID or class constructor.
+     * @param scope Bitwise enum to control where to search. Defaults to Current | Parent (searches up the hierarchy).
      * @returns The resolved dependency instance with container metadata.
      * @throws Error if the dependency cannot be found or is not auto injectable.
      */
-    resolve<T>(dependencyId: DependencyId): T & ContainerizedDependency;
+    resolve<T>(dependencyId: DependencyId, scope?: ResolveScope): T & ContainerizedDependency;
     resolve<T extends DependencyClass<any>>(
-        SomeClass: T
+        SomeClass: T,
+        scope?: ResolveScope
     ): InstanceType<T> & ContainerizedDependency;
     resolve<T>(
-        dependency: DependencyId | DependencyClass<any>
+        dependency: DependencyId | DependencyClass<any>,
+        scope: ResolveScope = ResolveScope.Current | ResolveScope.Parent
     ): T & ContainerizedDependency {
         if (typeof dependency === 'function') {
             let id: DependencyId;
@@ -239,10 +270,10 @@ export class ProxyDiContainer implements IProxyDiContainer {
                 id = dependency.name;
             }
 
-            return this.resolve(id);
+            return this.resolve(id, scope);
         }
 
-        if (!this.isKnown(dependency)) {
+        if (!this.isKnown(dependency, scope)) {
             throw new Error(
                 `Can't resolve unknown dependency: ${String(dependency)}`
             );
@@ -251,7 +282,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
         let context: MiddlewareContext<T> = {
             container: this,
             dependencyId: dependency,
-            dependency: this.resolveImpl(dependency),
+            dependency: this.resolveImpl(dependency, scope),
         };
 
         context = this.middlewareManager.onResolve(context);
@@ -260,28 +291,55 @@ export class ProxyDiContainer implements IProxyDiContainer {
     }
 
     private resolveImpl = <T>(
-        dependencyId: DependencyId
+        dependencyId: DependencyId,
+        scope: ResolveScope = ResolveScope.Current | ResolveScope.Parent
     ): T & ContainerizedDependency => {
-        const proxy = this.inContextProxies[dependencyId];
-        if (proxy) {
-            return proxy as T & ContainerizedDependency;
-        }
-
-        const instance = this.findDependency<T>(dependencyId);
-        if (instance) {
-            if (
-                instance[PROXYDI_CONTAINER] !== this &&
-                typeof instance === 'object' &&
-                this.settings.resolveInContainerContext
-            ) {
-                const proxy = makeDependencyProxy(instance);
-                this.injectDependenciesTo(proxy);
-                this.inContextProxies[dependencyId] = proxy;
+        // Current - check inContextProxies and dependencies
+        if (scope & ResolveScope.Current) {
+            const proxy = this.inContextProxies[dependencyId];
+            if (proxy) {
                 return proxy as T & ContainerizedDependency;
             }
-            return instance;
+
+            const instance = this.dependencies[dependencyId];
+            if (instance) {
+                return instance as T & ContainerizedDependency;
+            }
         }
 
+        // Parent - recursively check up the hierarchy
+        if (scope & ResolveScope.Parent) {
+            if (this.parent) {
+                const parentInstance = this.parent.findDependency<T>(dependencyId);
+                if (parentInstance) {
+                    if (
+                        parentInstance[PROXYDI_CONTAINER] !== this &&
+                        typeof parentInstance === 'object' &&
+                        this.settings.resolveInContainerContext
+                    ) {
+                        const proxy = makeDependencyProxy(parentInstance);
+                        this.injectDependenciesTo(proxy);
+                        this.inContextProxies[dependencyId] = proxy;
+                        return proxy as T & ContainerizedDependency;
+                    }
+                    return parentInstance;
+                }
+            }
+        }
+
+        // Children - recursively check down the hierarchy
+        if (scope & ResolveScope.Children) {
+            for (const child of this.children) {
+                if (child.hasOwn(dependencyId)) {
+                    return child.resolve<T>(dependencyId, ResolveScope.Current);
+                }
+                if (child.isKnown(dependencyId, ResolveScope.Children)) {
+                    return child.resolve<T>(dependencyId, ResolveScope.Children);
+                }
+            }
+        }
+
+        // @injectable - create instance (always reached if isKnown returned true)
         const InjectableClass = injectableClasses[dependencyId];
         return this.register(InjectableClass, dependencyId);
     };

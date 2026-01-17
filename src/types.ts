@@ -45,7 +45,7 @@ export type IProxyDiContainer = {
 
     parent?: IProxyDiContainer;
 
-    isKnown: (dependencyId: DependencyId | DependencyClass<any>) => boolean;
+    isKnown: (dependencyId: DependencyId | DependencyClass<any>, scope?: ResolveScope) => boolean;
 
     injectDependenciesTo: (dependency: any) => void;
 
@@ -55,7 +55,8 @@ export type IProxyDiContainer = {
     ) => any;
 
     resolve: <T>(
-        dependencyId: DependencyId | DependencyClass<any>
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope?: ResolveScope
     ) => T & ContainerizedDependency;
 
     resolveAll<T>(

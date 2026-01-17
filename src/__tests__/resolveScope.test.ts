@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { ProxyDiContainer, ResolveScope, resolveAll, injectAll } from '../index';
+import { ProxyDiContainer, ResolveScope, resolveAll, injectAll, injectable } from '../index';
 
 class Plugin {
     constructor(public readonly name: string) {}
+}
+
+@injectable('scopeTestAuto')
+class ScopeTestAuto {
+    name = 'ScopeTestAuto';
 }
 
 class Manager {
@@ -200,5 +205,121 @@ describe('ResolveScope', () => {
         expect(manager.plugins.length).equal(2);
         const names = manager.plugins.map((p) => p.name).sort();
         expect(names).toEqual(['Child', 'Current']);
+    });
+
+    describe('isKnown() with scope', () => {
+        it('isKnown with Children scope - finds in direct child', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+            child.register(new Plugin('Child'), 'plugin');
+
+            expect(parent.isKnown('plugin', ResolveScope.Children)).toBe(true);
+            expect(parent.isKnown('plugin', ResolveScope.Current)).toBe(false);
+        });
+
+        it('isKnown with Children scope - finds in nested grandchild', () => {
+            const root = new ProxyDiContainer();
+            const child = root.createChildContainer();
+            const grandchild = child.createChildContainer();
+            grandchild.register(new Plugin('Grandchild'), 'plugin');
+
+            expect(root.isKnown('plugin', ResolveScope.Children)).toBe(true);
+            expect(child.isKnown('plugin', ResolveScope.Children)).toBe(true);
+        });
+
+        it('isKnown with Children scope - returns false when not found', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+
+            expect(parent.isKnown('plugin', ResolveScope.Children)).toBe(false);
+        });
+
+        it('isKnown default scope is Current | Parent', () => {
+            const parent = new ProxyDiContainer();
+            parent.register(new Plugin('Parent'), 'plugin');
+            const child = parent.createChildContainer();
+
+            expect(child.isKnown('plugin')).toBe(true);
+        });
+    });
+
+    describe('resolve() with scope', () => {
+        it('resolve with Children scope - resolves from direct child', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+            child.register(new Plugin('Child'), 'plugin');
+
+            const plugin = parent.resolve<Plugin>('plugin', ResolveScope.Children);
+            expect(plugin.name).toBe('Child');
+        });
+
+        it('resolve with Children scope - resolves from nested grandchild', () => {
+            const root = new ProxyDiContainer();
+            const child = root.createChildContainer();
+            const grandchild = child.createChildContainer();
+            grandchild.register(new Plugin('Grandchild'), 'plugin');
+
+            const plugin = root.resolve<Plugin>('plugin', ResolveScope.Children);
+            expect(plugin.name).toBe('Grandchild');
+        });
+
+        it('resolve with Children scope - throws when not found', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+
+            expect(() => parent.resolve('plugin', ResolveScope.Children)).toThrowError(
+                "Can't resolve unknown dependency"
+            );
+        });
+
+        it('resolve default scope is Current | Parent', () => {
+            const parent = new ProxyDiContainer();
+            parent.register(new Plugin('Parent'), 'plugin');
+            const child = parent.createChildContainer();
+
+            const plugin = child.resolve<Plugin>('plugin');
+            expect(plugin.name).toBe('Parent');
+        });
+
+        it('resolve with Current scope only', () => {
+            const parent = new ProxyDiContainer();
+            parent.register(new Plugin('Parent'), 'plugin');
+            const child = parent.createChildContainer();
+            child.register(new Plugin('Child'), 'plugin');
+
+            const plugin = child.resolve<Plugin>('plugin', ResolveScope.Current);
+            expect(plugin.name).toBe('Child');
+        });
+
+        it('resolve with Current scope - throws when not in current', () => {
+            const parent = new ProxyDiContainer();
+            parent.register(new Plugin('Parent'), 'plugin');
+            const child = parent.createChildContainer();
+
+            expect(() => child.resolve('plugin', ResolveScope.Current)).toThrowError(
+                "Can't resolve unknown dependency"
+            );
+        });
+
+        it('resolve with Parent scope - finds in grandparent recursively', () => {
+            const grandparent = new ProxyDiContainer();
+            grandparent.register(new Plugin('Grandparent'), 'plugin');
+
+            const parent = grandparent.createChildContainer();
+            const child = parent.createChildContainer();
+
+            const plugin = child.resolve<Plugin>('plugin');
+            expect(plugin.name).toBe('Grandparent');
+        });
+
+        it('resolve with All scope - falls through Children to @injectable', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+            // Child exists but has no 'scopeTestAuto' dependency
+            // @injectable ScopeTestAuto class should be resolved after checking Children
+
+            const auto = parent.resolve<ScopeTestAuto>('scopeTestAuto', ResolveScope.All);
+            expect(auto.name).toBe('ScopeTestAuto');
+        });
     });
 });
