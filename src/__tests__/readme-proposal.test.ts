@@ -160,12 +160,10 @@ describe('README Proposal Examples', () => {
     describe('Part 2: Technical Details', () => {
         it('Container Settings', () => {
             const container = new ProxyDiContainer({
-                allowRegisterAnything: false,
                 allowRewriteDependencies: false,
                 resolveInContainerContext: false,
             });
 
-            expect(container.settings.allowRegisterAnything).toBe(false);
             expect(container.settings.allowRewriteDependencies).toBe(false);
             expect(container.settings.resolveInContainerContext).toBe(false);
         });

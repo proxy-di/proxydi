@@ -162,12 +162,6 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
 
         const isObject = typeof instance === 'object';
-        if (!isObject && !this.settings.allowRegisterAnything) {
-            throw new Error(
-                `Can't register as dependency (allowRegisterAnything is off for this contatiner): ${instance}`
-            );
-        }
-
         if (isObject) {
             instance[PROXYDI_CONTAINER] = this;
             instance[DEPENDENCY_ID] = id;

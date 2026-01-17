@@ -117,7 +117,6 @@ export type ContainerizedDependency = Dependency & {
 };
 
 export type ContainerSettings = {
-    allowRegisterAnything?: boolean;
     allowRewriteDependencies?: boolean;
     resolveInContainerContext?: boolean;
 };

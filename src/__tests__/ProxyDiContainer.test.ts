@@ -134,17 +134,8 @@ describe('ProxyDi', () => {
             expect(container.isKnown(dependencyId)).is.false;
         });
 
-        it('by default dependency should be an object', () => {
-            const container = new ProxyDiContainer();
-            expect(() =>
-                container.register(dependencyId, 'any value')
-            ).toThrowError("Can't register as dependency");
-        });
-
         it('but any value could be registered as instance', () => {
-            const container = new ProxyDiContainer({
-                allowRegisterAnything: true,
-            });
+            const container = new ProxyDiContainer();
             container.register('any value', dependencyId);
 
             expect(container.isKnown(dependencyId)).is.true;
@@ -466,9 +457,7 @@ describe('ProxyDi', () => {
         });
 
         it('removeInstance() removes any value', () => {
-            const container = new ProxyDiContainer({
-                allowRegisterAnything: true,
-            });
+            const container = new ProxyDiContainer();
             container.register('any value', 'literal');
             expect(container.isKnown('literal')).is.true;
 
@@ -656,9 +645,7 @@ describe('ProxyDi', () => {
         });
 
         it('baking any value', () => {
-            const container = new ProxyDiContainer({
-                allowRegisterAnything: true,
-            });
+            const container = new ProxyDiContainer();
             container.register('any value', 'literal');
 
             const anyValue = container.resolve('literal');

@@ -330,13 +330,10 @@ ProxyDiContainer accepts optional settings to control its behavior:
 
 ```typescript
 const container = new ProxyDiContainer({
-    allowRegisterAnything: false, // Allow register literals as dependencies
     allowRewriteDependencies: false, // Prevent accidental overwrites
     resolveInContainerContext: false, // Performance optimization (see below)
 });
 ```
-
-**allowRegisterAnything**: By default, ProxyDi only accepts objects as dependencies. Set this to `true` to register primitive values like strings or numbers.
 
 **allowRewriteDependencies**: When `false` (default), trying to register the same dependency twice throws an error. Set to `true` if you need to replace dependencies at runtime (useful for testing or hot-reload scenarios).
 
