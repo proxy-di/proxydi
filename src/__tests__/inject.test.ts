@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inject, injectable, ProxyDiContainer } from '../index';
+import { inject, injectable, ProxyDiContainer, ResolveScope } from '../index';
 import { Injection, INJECTIONS } from '../types';
 
 class Empty {
@@ -158,5 +158,68 @@ describe('inject', () => {
 
         expect(consumer.service).is.not.undefined;
         expect(consumer.service.value).equal('symbol service');
+    });
+
+    describe('@inject with scope', () => {
+        it('should inject from children with Children scope', () => {
+            class Service {
+                constructor(public name: string) {}
+            }
+
+            class Consumer {
+                @inject('service', ResolveScope.Children) service: Service;
+            }
+
+            const parent = new ProxyDiContainer();
+            const consumer = parent.register(Consumer);
+
+            const child = parent.createChildContainer();
+            child.register(new Service('from child'), 'service');
+
+            expect(consumer.service.name).equal('from child');
+        });
+
+        it('should NOT inject from parent with Children scope', () => {
+            class Service {
+                constructor(public name: string) {}
+            }
+
+            class Consumer {
+                @inject('service', ResolveScope.Children) service: Service;
+            }
+
+            const parent = new ProxyDiContainer();
+            parent.register(new Service('from parent'), 'service');
+
+            const child = parent.createChildContainer();
+            const consumer = child.register(Consumer);
+
+            expect(() => consumer.service.name).toThrowError('Unknown dependency');
+        });
+
+        it('should inject from parent with Parent scope', () => {
+            class Service {
+                constructor(public name: string) {}
+            }
+
+            class Consumer {
+                @inject('service', ResolveScope.Parent) service: Service;
+            }
+
+            const parent = new ProxyDiContainer();
+            parent.register(new Service('from parent'), 'service');
+
+            const child = parent.createChildContainer();
+            const consumer = child.register(Consumer);
+
+            expect(consumer.service.name).equal('from parent');
+        });
+
+        it('default scope should be Current | Parent', () => {
+            const instance = new Dependent() as any;
+            const injection = instance[INJECTIONS]['freeDependency'] as Injection;
+
+            expect(injection.scope).equal(ResolveScope.Current | ResolveScope.Parent);
+        });
     });
 });
