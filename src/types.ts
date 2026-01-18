@@ -6,18 +6,6 @@ export type DependencyClass<T> = new (...args: any[]) => T;
 
 export type Setter = (object: unknown, value: unknown) => void;
 
-export enum DuplicateStrategy {
-    ReplaceIfSingleElseAdd = 'replace-if-single-else-add',
-    AlwaysReplace = 'always-replace',
-    AlwaysAdd = 'always-add',
-    Throw = 'throw',
-}
-
-export type RegisterOptions = {
-    dependencyId?: DependencyId | DependencyId[] | DependencyClass<any>;
-    duplicateStrategy?: DuplicateStrategy;
-};
-
 export enum ResolveScope {
     Parent = 1 << 0, // 0b001
     Current = 1 << 1, // 0b010
@@ -29,10 +17,13 @@ export type SingleInjection = {
     property: string | symbol;
     dependencyId: DependencyId;
     set: Setter;
-    scope?: ResolveScope;
+    //isAll?: false;
 };
 
 export type AllInjection = SingleInjection & {
+    // property: string | symbol;
+    // dependencyId: DependencyId;
+    // set: Setter;
     isAll: true;
     scope: ResolveScope;
 };
@@ -54,44 +45,20 @@ export type IProxyDiContainer = {
 
     parent?: IProxyDiContainer;
 
-    isKnown: (
-        dependencyId: DependencyId | DependencyClass<any>,
-        scope?: ResolveScope
-    ) => boolean;
+    isKnown: (dependencyId: DependencyId | DependencyClass<any>) => boolean;
 
     injectDependenciesTo: (dependency: any) => void;
 
     register: (
         dependency: any,
-        options?:
-            | RegisterOptions
-            | DependencyId
-            | DependencyId[]
-            | DependencyClass<any>
+        dependencyId?: DependencyId | DependencyClass<any>
     ) => any;
 
-    resolve: {
-        <T>(dependencyId: DependencyId, scope?: ResolveScope):
-            | (T & ContainerizedDependency)
-            | (ContainerizedDependency & any);
-        <T extends DependencyClass<any>>(
-            dependency: T,
-            scope?: ResolveScope
-        ): InstanceType<T> & ContainerizedDependency;
-    };
-
-    resolveAll: {
-        <T>(dependencyId: DependencyId, scope?: ResolveScope): (T &
-            ContainerizedDependency)[];
-        <T extends DependencyClass<any>>(
-            dependency: T,
-            scope?: ResolveScope
-        ): (InstanceType<T> & ContainerizedDependency)[];
-    };
-
-    hasOwn: <T>(
+    resolve: <T>(
         dependencyId: DependencyId | DependencyClass<any>
-    ) => boolean;
+    ) => T & ContainerizedDependency;
+
+    hasOwn: <T>(dependencyId: DependencyId | DependencyClass<any>) => boolean;
 
     createChildContainer: () => IProxyDiContainer;
     children: IProxyDiContainer[];
@@ -109,9 +76,9 @@ export const INJECTIONS = Symbol('injections');
 /**
  * This symbol constant defines a property name.
  * This property is present in each dependency instance that was registered in ProxyDiContainer.
- * The property stores dependency identifiers that should be used to resolve dependency from the container where it was registered.
+ * The property stores the dependency identifier that should be used to resolve dependency from the container where it was registered.
  */
-export const DEPENDENCY_IDS = Symbol('DependencyIds');
+export const DEPENDENCY_ID = Symbol('DependencyId');
 
 /**
  * This symbol constant defines a property name.
@@ -133,9 +100,9 @@ export type Dependency = {
  */
 export type ContainerizedDependency = Dependency & {
     /**
-     * All identifiers that were used to register this instance in the container.
+     * Unique identifier that could use to resolve this instance from container where it was registered
      */
-    [DEPENDENCY_IDS]: DependencyId[];
+    [DEPENDENCY_ID]: DependencyId;
 
     /**
      * ProxyDi container in which this instance was registered
@@ -145,6 +112,7 @@ export type ContainerizedDependency = Dependency & {
 
 export type ContainerSettings = {
     allowRegisterAnything?: boolean;
+    allowRewriteDependencies?: boolean;
     resolveInContainerContext?: boolean;
 };
 

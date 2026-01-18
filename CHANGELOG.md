@@ -4,19 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [[0.3.0](https://www.npmjs.com/package/proxydi/v/0.3.0)] - 2026-01-02
-
 ### Added
 
-- `@injectable` accepts multiple dependency identifiers and always registers under the class name as a default ID
-- `register()` can directly bind a single dependency to multiple dependency IDs
-- `@inject` accepts `ResolveScope` to resolve dependencies from children/parent/current containers
-- `resolve()` and `resolveAll()` accept optional `ResolveScope` to define where dependencies are searched
-- Robust removal logic for multi-ID registrations; removing by ID leaves other IDs intact, removing by instance clears all IDs
-
-### Breaking
-
-- One dependency ID can now have multiple registrations; `resolve()` returns the first registered instance, while `resolveAll()`/`@injectAll` return all matching instances.
+- Added test coverage for Symbol-based dependency IDs with `@injectable`, `@inject`, and `@injectAll` decorators
 
 ## [[0.2.0](https://www.npmjs.com/package/proxydi/v/0.2.0)] - 2026-01-01
 
@@ -30,9 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Fixed bug where passing class constructor as `dependencyId` in `register()` would store dependency under function reference instead of class name, making it impossible to resolve with `resolve(Class)`
 
-### Breaking
+### Removed
 
-- Constructor injection support removed from `@injectable` decorator. This experimental feature caused issues with circular dependencies and added unnecessary complexity. Use field injection with `@inject` decorator instead.
+- **BREAKING:** Constructor injection support removed from `@injectable` decorator. This experimental feature caused issues with circular dependencies and added unnecessary complexity. Use field injection with `@inject` decorator instead.
 
 ## [[0.1.3](https://www.npmjs.com/package/proxydi/v/0.1.3)] - 2025-03-26
 

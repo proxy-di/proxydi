@@ -124,6 +124,23 @@ describe('@injectAll', () => {
         expect(manager.plugins[0]).equal(pluginA);
     });
 
+    it('should update dependencies when allowRewriteDependencies is true', () => {
+        const container = new ProxyDiContainer({
+            allowRewriteDependencies: true,
+        });
+        const pluginA = new Plugin('Plugin A');
+        container.register(pluginA, 'plugin');
+
+        const manager = container.resolve(PluginManager);
+
+        expect(manager.plugins[0] === pluginA).is.true;
+
+        const pluginB = new Plugin('Plugin A');
+        container.register(pluginB, 'plugin');
+
+        expect(manager.plugins[0] === pluginB).is.true;
+    });
+
     it('should support nested hierarchy', () => {
         const root = new ProxyDiContainer();
         root.register(new Plugin('Root'), 'plugin');
@@ -210,7 +227,9 @@ describe('@injectAll', () => {
     });
 
     it('should work with bakeInjections()', () => {
-        const container = new ProxyDiContainer();
+        const container = new ProxyDiContainer({
+            allowRewriteDependencies: true,
+        });
         container.register(new Plugin('Plugin A'), 'plugin');
 
         const manager = container.resolve(PluginManager);
@@ -314,7 +333,9 @@ describe('@injectAll', () => {
     });
 
     it('should support accessing plugins without prior registration', () => {
-        const container = new ProxyDiContainer();
+        const container = new ProxyDiContainer({
+            allowRewriteDependencies: true,
+        });
 
         const manager = container.resolve(PluginManager);
 
@@ -366,7 +387,9 @@ describe('@injectAll', () => {
     it('should cover set handler on unbaked array', () => {
         // TODO^ This should throw and extexption!
         // Direct test for lines 142-143: set on proxy before baking
-        const container = new ProxyDiContainer();
+        const container = new ProxyDiContainer({
+            allowRewriteDependencies: true,
+        });
 
         const manager = container.resolve(PluginManager);
 

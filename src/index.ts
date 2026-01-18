@@ -19,9 +19,7 @@ export {
     ResolveScope,
     // TODO: I'm not sure if these should be shared
     PROXYDI_CONTAINER,
-    DEPENDENCY_IDS,
+    DEPENDENCY_ID,
     ON_CONTAINERIZED,
-    DuplicateStrategy,
-    RegisterOptions,
 } from './types';
 export { resolveAll } from './resolveAll';

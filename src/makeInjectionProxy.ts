@@ -6,7 +6,6 @@ import {
     Injection,
     IProxyDiContainer,
     PROXYDI_CONTAINER,
-    ResolveScope,
 } from './types';
 
 export class InjectionProxy implements IInjectionProxy {
@@ -25,18 +24,14 @@ export const makeInjectionProxy = <T>(
     injectionOwner: ContainerizedDependency,
     container: IProxyDiContainer
 ): T => {
-    const defaultScope = ResolveScope.Current | ResolveScope.Parent;
-    let resolvedOnce = false;
-
     function getDependency() {
-        try {
-            const dependency = container.resolve(
-                injection.dependencyId,
-                injection.scope ?? defaultScope
-            ) as any;
-            resolvedOnce = true;
+        if (container.isKnown(injection.dependencyId)) {
+            const dependency = container.resolve(injection.dependencyId) as any;
+            if (!container.settings.allowRewriteDependencies) {
+                injection.set(injectionOwner, dependency);
+            }
             return dependency;
-        } catch (e) {
+        } else {
             throw new Error(
                 `Unknown dependency: ${String(injection.dependencyId)}`
             );
@@ -48,9 +43,6 @@ export const makeInjectionProxy = <T>(
             prop: string | symbol,
             receiver: any
         ) {
-            if (prop === IS_INJECTION_PROXY && resolvedOnce) {
-                return undefined;
-            }
             if ((target as any)[prop]) {
                 return (target as any)[prop];
             }

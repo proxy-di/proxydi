@@ -1,7 +1,7 @@
+import { findInjectableId } from './injectable.decorator';
 import {
     ContainerizedDependency,
     DependencyId,
-    DependencyClass,
     IProxyDiContainer,
     PROXYDI_CONTAINER,
     ResolveScope,
@@ -26,25 +26,73 @@ export function resolveAll<T extends new (...args: any[]) => any>(
 ): (InstanceType<T> & ContainerizedDependency)[];
 export function resolveAll<T>(
     instance: any,
-    dependencyId: DependencyId | DependencyClass<any>,
+    dependencyId: any,
     scope: ResolveScope = ResolveScope.Children
 ): (T & ContainerizedDependency)[] {
-    const container = (instance as ContainerizedDependency)[
-        PROXYDI_CONTAINER
-    ] as IProxyDiContainer | undefined;
+    if (typeof dependencyId === 'function') {
+        const id = findInjectableId(dependencyId);
+        return resolveAll(instance, id, scope);
+    }
+
+    const container = (instance as ContainerizedDependency)[PROXYDI_CONTAINER];
     if (!container) {
         throw new Error('Instance is not registered in any container');
     }
 
-    if (typeof dependencyId === 'function') {
-        return container.resolveAll(
-            dependencyId as DependencyClass<any>,
-            scope
-        ) as (T & ContainerizedDependency)[];
+    return recursiveResolveAll<T>(container, dependencyId, scope);
+}
+
+function recursiveResolveAll<T>(
+    container: IProxyDiContainer,
+    dependencyId: DependencyId,
+    scope: ResolveScope = ResolveScope.All
+): (T & ContainerizedDependency)[] {
+    if ((scope as any) === 0) {
+        throw new Error('ResolveScope must have at least one flag set');
     }
 
-    return container.resolveAll(
-        dependencyId as DependencyId,
-        scope
-    ) as (T & ContainerizedDependency)[];
+    let all: (T & ContainerizedDependency)[] = [];
+
+    // Current - search in current container only
+    if (scope & ResolveScope.Current) {
+        if (container.hasOwn(dependencyId)) {
+            all.push(container.resolve<T>(dependencyId));
+        }
+    }
+
+    // Parent - search up the hierarchy
+    if (scope & ResolveScope.Parent) {
+        let parent = container.parent;
+        if (parent && parent.isKnown(dependencyId)) {
+            const dependency = parent.resolve<T>(dependencyId);
+            all.push(dependency);
+        }
+    }
+
+    // Children - recursively search down the hierarchy
+    if (scope & ResolveScope.Children) {
+        for (const child of container.children) {
+            // Recursive call with Children + Current (always include Current for children)
+            const childScope = ResolveScope.Children | ResolveScope.Current;
+            const childResults = recursiveResolveAll<T>(
+                child,
+                dependencyId,
+                childScope
+            );
+            all = all.concat(childResults);
+        }
+    }
+
+    // Remove duplicates - same instance should not appear twice
+    const unique: (T & ContainerizedDependency)[] = [];
+    const seen = new Set<any>();
+
+    for (const item of all) {
+        if (!seen.has(item)) {
+            seen.add(item);
+            unique.push(item);
+        }
+    }
+
+    return unique;
 }

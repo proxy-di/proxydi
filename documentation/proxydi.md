@@ -143,14 +143,6 @@ Creates additional permanent Proxy for each parent dependency resolved from chil
 
 TypeScript overloads distinguish class constructors from instances. Conditional type `T extends new (...args: any[]) => any ? never : T` prevents ambiguity. See `ProxyDiContainer.ts:120-127`.
 
-### How Multiple Registrations work?
-
-`ProxyDiContainer` stores dependencies as `Record<DependencyId, ContainerizedDependency[]>`.
-
-- `resolve(id)` returns `deps[0]` (first registered).
-- `resolveAll(id)` utilizes `recursiveResolveAll` to collect all instances from hierarchy and dedupes them.
-- `DuplicateStrategy` controls how `register()` updates the array (Replace vs Append).
-
 ## Performance Characteristics
 
 | Feature                       | Proxy Type      | Baking                 | Performance Impact |
