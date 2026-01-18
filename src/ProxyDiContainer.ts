@@ -199,14 +199,13 @@ export class ProxyDiContainer implements IProxyDiContainer {
     ): boolean {
         const id = this.normalizeDependencyId(dependencyId);
 
-        // @injectable classes are always available
-        if (injectableClasses[id]) {
-            return true;
-        }
-
-        // Current - check in this container
+        // Current - check in this container and @injectable
         if (scope & ResolveScope.Current) {
             if (this.inContextProxies[id] || this.dependencies[id]) {
+                return true;
+            }
+            // @injectable auto-registers in current container, so only available with Current scope
+            if (injectableClasses[id]) {
                 return true;
             }
         }
@@ -221,7 +220,12 @@ export class ProxyDiContainer implements IProxyDiContainer {
         // Children - recursively check down the hierarchy
         if (scope & ResolveScope.Children) {
             for (const child of this.children) {
-                if (child.isKnown(id, ResolveScope.Current | ResolveScope.Children)) {
+                // Check if child has it directly
+                if (child.hasOwn(id)) {
+                    return true;
+                }
+                // Recursively check child's children (without Current to avoid @injectable auto-creation)
+                if (child.isKnown(id, ResolveScope.Children)) {
                     return true;
                 }
             }
@@ -333,9 +337,15 @@ export class ProxyDiContainer implements IProxyDiContainer {
             }
         }
 
-        // @injectable - create instance (always reached if isKnown returned true)
-        const InjectableClass = injectableClasses[dependencyId];
-        return this.register(InjectableClass, dependencyId);
+        // @injectable - create instance in current container (only if Current scope)
+        if (scope & ResolveScope.Current) {
+            const InjectableClass = injectableClasses[dependencyId];
+            if (InjectableClass) {
+                return this.register(InjectableClass, dependencyId);
+            }
+        }
+
+        throw new Error(`Can't resolve dependency: ${String(dependencyId)}`);
     };
 
     /**
