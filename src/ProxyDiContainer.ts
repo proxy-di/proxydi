@@ -212,8 +212,15 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
         // Parent - recursively check up the hierarchy
         if (scope & ResolveScope.Parent) {
-            if (this.parent && this.parent.isKnown(id, ResolveScope.Current | ResolveScope.Parent)) {
-                return true;
+            if (this.parent) {
+                // Check if parent has it directly
+                if (this.parent.hasOwn(id)) {
+                    return true;
+                }
+                // Recursively check parent's parent (without Current to avoid @injectable)
+                if (this.parent.isKnown(id, ResolveScope.Parent)) {
+                    return true;
+                }
             }
         }
 
@@ -338,14 +345,9 @@ export class ProxyDiContainer implements IProxyDiContainer {
         }
 
         // @injectable - create instance in current container (only if Current scope)
-        if (scope & ResolveScope.Current) {
-            const InjectableClass = injectableClasses[dependencyId];
-            if (InjectableClass) {
-                return this.register(InjectableClass, dependencyId);
-            }
-        }
-
-        throw new Error(`Can't resolve dependency: ${String(dependencyId)}`);
+        // This is always reached when isKnown returned true with Current scope
+        const InjectableClass = injectableClasses[dependencyId];
+        return this.register(InjectableClass, dependencyId);
     };
 
     /**

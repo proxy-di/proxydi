@@ -350,5 +350,13 @@ describe('ResolveScope', () => {
                 child.resolve('scopeTestAuto', ResolveScope.Parent);
             }).toThrowError("Can't resolve");
         });
+
+        it('isKnown with Parent scope should return false for @injectable not in parent', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+            // @injectable exists globally, but we're checking ONLY in parent
+
+            expect(child.isKnown('scopeTestAuto', ResolveScope.Parent)).toBe(false);
+        });
     });
 });
