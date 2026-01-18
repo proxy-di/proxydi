@@ -545,6 +545,26 @@ describe('ProxyDi', () => {
 
             expect(firstCall).equals(secondCall);
         });
+
+        it('contextResolve() does NOT affect resolve() - they are independent', () => {
+            const parent = new ProxyDiContainer();
+            const original = parent.register(First, 'first');
+
+            const child = parent.createChildContainer();
+
+            // First resolve() returns parent instance
+            const beforeContext = child.resolve<First>('first');
+            expect(beforeContext).equals(original);
+
+            // contextResolve() creates a proxy
+            const contextProxy = child.contextResolve<First>('first');
+            expect(contextProxy).not.equals(original);
+
+            // resolve() STILL returns parent instance, NOT the proxy
+            const afterContext = child.resolve<First>('first');
+            expect(afterContext).equals(original);
+            expect(afterContext).not.equals(contextProxy);
+        });
     });
 
     describe('resolve by class', () => {
