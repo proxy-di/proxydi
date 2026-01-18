@@ -12,6 +12,7 @@ Core features:
 - Automatically resolves circular dependencies with no performance impact
 - Resolves dependencies in the context of a particular container
 - Supports hierarchical containers with the ability to resolve dependencies in both directions
+- [resolveAll()]() method to resolve all dependencies of a given kind
 - Currently under active development, the API may change until version 1.0.0
 
 Experimental features:
@@ -248,7 +249,11 @@ In this example, the character activates all its perks, which are registered in 
 
 ### Reference to the container
 
-Here you should be wondering, how [resolveAll()](https://proxy-di.github.io/proxydi/functions/resolveAll.html) function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance. So, when you call resolveAll() function, it just takes this reference from the instance and then recursively resolves all asked dependencies from this container and all its children and children of children and so on.
+### Reference to the container
+
+Here you should be wondering, how `resolveAll()` function knows about the container, to which character belongs. The answer - each time when dependency is registered in the ProxyDiContainer, it saves a reference to itself in this dependency instance. So, when you call `resolveAll()` function, it just takes this reference from the instance and then calls `container.resolveAll()` which recursively resolves all asked dependencies from this container and all its children and children of children and so on.
+
+You can also use `container.resolveAll()` directly if you have access to the container instance.
 
 Despite this explanation is a little bit complicated, the example is still simple, the character just activates all its perks.
 

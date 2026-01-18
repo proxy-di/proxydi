@@ -114,7 +114,7 @@ graph TB
 
 **Utilities:**
 
-- `resolveAll.ts` — resolve dependencies from container hierarchy
+- `resolveAll.ts` — wrapper for `container.resolveAll()`
 - `presets.ts` — default container settings
 
 ## Test Files

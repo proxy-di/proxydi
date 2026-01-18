@@ -1,6 +1,7 @@
 import { ProxyDiContainer } from './ProxyDiContainer';
 
 export type DependencyId = string | symbol;
+export type AliasId = string | symbol;
 
 export type DependencyClass<T> = new (...args: any[]) => T;
 
@@ -17,13 +18,9 @@ export type SingleInjection = {
     property: string | symbol;
     dependencyId: DependencyId;
     set: Setter;
-    //isAll?: false;
 };
 
 export type AllInjection = SingleInjection & {
-    // property: string | symbol;
-    // dependencyId: DependencyId;
-    // set: Setter;
     isAll: true;
     scope: ResolveScope;
 };
@@ -45,7 +42,10 @@ export type IProxyDiContainer = {
 
     parent?: IProxyDiContainer;
 
-    isKnown: (dependencyId: DependencyId | DependencyClass<any>) => boolean;
+    isKnown: (
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope?: ResolveScope
+    ) => boolean;
 
     injectDependenciesTo: (dependency: any) => void;
 
@@ -55,8 +55,14 @@ export type IProxyDiContainer = {
     ) => any;
 
     resolve: <T>(
-        dependencyId: DependencyId | DependencyClass<any>
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope?: ResolveScope
     ) => T & ContainerizedDependency;
+
+    resolveAll<T>(
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope?: ResolveScope
+    ): (T & ContainerizedDependency)[];
 
     hasOwn: <T>(dependencyId: DependencyId | DependencyClass<any>) => boolean;
 
@@ -111,9 +117,8 @@ export type ContainerizedDependency = Dependency & {
 };
 
 export type ContainerSettings = {
-    allowRegisterAnything?: boolean;
     allowRewriteDependencies?: boolean;
-    resolveInContainerContext?: boolean;
+    resolveInContainerContext?: boolean; // TODO: Change to contextResolve()
 };
 
 export const IS_INJECTION_PROXY = Symbol('isInjectionProxy');

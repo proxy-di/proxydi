@@ -330,13 +330,10 @@ ProxyDiContainer accepts optional settings to control its behavior:
 
 ```typescript
 const container = new ProxyDiContainer({
-    allowRegisterAnything: false, // Allow register literals as dependencies
     allowRewriteDependencies: false, // Prevent accidental overwrites
     resolveInContainerContext: false, // Performance optimization (see below)
 });
 ```
-
-**allowRegisterAnything**: By default, ProxyDi only accepts objects as dependencies. Set this to `true` to register primitive values like strings or numbers.
 
 **allowRewriteDependencies**: When `false` (default), trying to register the same dependency twice throws an error. Set to `true` if you need to replace dependencies at runtime (useful for testing or hot-reload scenarios).
 
@@ -344,25 +341,16 @@ const container = new ProxyDiContainer({
 
 ### Resolving All Dependencies
 
-Sometimes you need to get all instances of a specific type from a container and all its children. For example, a director might want to gather all actors from all casts:
+Sometimes you need to get all instances of a specific type from a container and all its children. For example, gathering all actors from all casts:
 
 ```typescript
-import { injectable, inject, ProxyDiContainer, resolveAll } from 'proxydi';
+import { injectable, inject, ProxyDiContainer } from 'proxydi';
 
 class Actor {
     constructor(public readonly name: string = 'Actor') {}
 }
 
-@injectable()
-class Director {
-    getAllActors() {
-        // resolveAll needs a containerized instance to know which container to search
-        return resolveAll(this, 'actor');
-    }
-}
-
 const mainProduction = new ProxyDiContainer();
-const director = mainProduction.resolve(Director);
 
 // Main cast
 const mainCast = mainProduction.createChildContainer();
@@ -372,12 +360,13 @@ mainCast.register(new Actor('Laurence Olivier'), 'actor');
 const understudyCast = mainProduction.createChildContainer();
 understudyCast.register(new Actor('Kenneth Branagh'), 'actor');
 
-const allActors = director.getAllActors();
+// Resolve all actors from main container and all children
+const allActors = mainProduction.resolveAll<Actor>('actor');
 console.log(allActors.map((a) => a.name));
 // Output: ['Laurence Olivier', 'Kenneth Branagh']
 ```
 
-The `resolveAll()` function takes an instance that's registered in a container and searches that container plus all its children recursively.
+The `resolveAll()` method searches in the container plus all its children recursively.
 
 ### Custom Dependency IDs
 
