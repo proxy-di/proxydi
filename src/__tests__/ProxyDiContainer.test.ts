@@ -490,10 +490,8 @@ describe('ProxyDi', () => {
             );
         });
 
-        it('could resolve dependencies in container context', () => {
-            const parent = new ProxyDiContainer({
-                resolveInContainerContext: true,
-            });
+        it('could resolve dependencies in container context with contextResolve()', () => {
+            const parent = new ProxyDiContainer();
             parent.register(First, 'first');
             const dependency1Parent = parent.resolve<First>('first');
             expect(() => dependency1Parent.second.name).toThrowError(
@@ -502,7 +500,7 @@ describe('ProxyDi', () => {
 
             const child = parent.createChildContainer();
             child.register(Second, 'second');
-            const dependency1Child = child.resolve<First>('first');
+            const dependency1Child = child.contextResolve<First>('first');
 
             const dependency2 = child.resolve<Second>('second');
 
@@ -510,10 +508,8 @@ describe('ProxyDi', () => {
             expect(dependency1Child.second.name).equals("I'm second!");
         });
 
-        it("resolve() takes dependencies from it's container", () => {
-            const parent = new ProxyDiContainer({
-                resolveInContainerContext: true,
-            });
+        it("contextResolve() takes dependencies from it's container", () => {
+            const parent = new ProxyDiContainer();
             parent.register(Second, 'second');
 
             const child1 = parent.createChildContainer();
@@ -522,11 +518,32 @@ describe('ProxyDi', () => {
             const child2 = parent.createChildContainer();
             child2.register(new First('from child #2'), 'first');
 
-            const secondFromChild1 = child1.resolve<Second>('second');
-            const secondFromChild2 = child2.resolve<Second>('second');
+            const secondFromChild1 = child1.contextResolve<Second>('second');
+            const secondFromChild2 = child2.contextResolve<Second>('second');
 
             expect(secondFromChild1.first.name).equals('from child #1');
             expect(secondFromChild2.first.name).equals('from child #2');
+        });
+
+        it('contextResolve() returns same instance when already in current container', () => {
+            const container = new ProxyDiContainer();
+            const first = container.register(First, 'first');
+
+            const resolved = container.contextResolve<First>('first');
+
+            expect(resolved).equals(first);
+        });
+
+        it('contextResolve() returns cached proxy on second call', () => {
+            const parent = new ProxyDiContainer();
+            parent.register(First, 'first');
+
+            const child = parent.createChildContainer();
+
+            const firstCall = child.contextResolve<First>('first');
+            const secondCall = child.contextResolve<First>('first');
+
+            expect(firstCall).equals(secondCall);
         });
     });
 

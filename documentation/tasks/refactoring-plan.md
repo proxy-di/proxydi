@@ -10,13 +10,14 @@ Refactoring plan for 0.4.x version:
 
     - allow register anything always
 
-- scope to @inject()
+- ~~scope to @inject()~~
 
     - the same logic as in resolve() method
 
 - Split ResolveScope.Parent to ResolveScope.DirectParent and ResolveScope.FistAncestor
 
-- replace resolveInContainerContext option by contextResolve() method
+- ~~replace resolveInContainerContext option by contextResolve() method~~
+
 - polish baking:
 
     - remove public direct baking method
@@ -47,6 +48,6 @@ Refactoring plan for 0.4.x version:
 - rebranding aka rename:
   @inject() to @resolve()
   @injectAll to @resolveAll() (and remove current separaete resolveAll function)
-  @injectable() to @resolvable()
+  @injectable() to @register()/resolvable()
 
 - make injectDependenciesTo() private?

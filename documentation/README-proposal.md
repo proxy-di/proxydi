@@ -268,7 +268,7 @@ Everything we've shown so far works with zero performance overhead. ProxyDi uses
 
 #### Parent Seeing Child Dependencies
 
-Sometimes you need a parent dependency to access child-specific context. For example, a director registered at the theater level needs to know which production they're currently working on. This is possible with `resolveInContainerContext`, but comes with a performance cost:
+Sometimes you need a parent dependency to access child-specific context. For example, a director registered at the theater level needs to know which production they're currently working on. Use `contextResolve()` for this:
 
 ```typescript
 @injectable()
@@ -286,24 +286,22 @@ class Director {
     }
 }
 
-const theater = new ProxyDiContainer({
-    resolveInContainerContext: true, // Enable context resolution
-});
+const theater = new ProxyDiContainer();
 theater.register(Director);
 
 const hamletProduction = theater.createChildContainer();
 hamletProduction.register(ProductionInfo);
 
-const director = hamletProduction.resolve(Director);
+const director = hamletProduction.contextResolve(Director);
 console.log(director.announce());
 // Output: I'm directing Hamlet on 2024-03-15
 ```
 
-With `resolveInContainerContext: true`, when you resolve Director from a child container, it sees that child's ProductionInfo. This enables powerful scenarios where a single parent dependency adapts to different child contexts.
+With `contextResolve()`, when you resolve Director from a child container, it sees that child's ProductionInfo. This enables powerful scenarios where a single parent dependency adapts to different child contexts.
 
-**Performance Impact**: This feature requires a permanent Proxy layer with **~100x slower property access**. Unlike auto-baking (which happens once), this Proxy remains active for all property accesses.
+**Performance Impact**: This method creates a permanent Proxy layer with **~100x slower property access**. Unlike auto-baking (which happens once), this Proxy remains active for all property accesses.
 
-**When to use**: Only when you specifically need parent dependencies to adapt to child context. For most cases, the default behavior (child accessing parent, like in the Brochure example) is sufficient and has zero overhead after auto-baking.
+**When to use**: Only when you specifically need parent dependencies to adapt to child context. For most cases, the default `resolve()` behavior (child accessing parent, like in the Brochure example) is sufficient and has zero overhead after auto-baking.
 
 **Manual Baking**: If you want to ensure all injections are resolved upfront (for example, after configuration is complete), you can manually bake:
 
@@ -331,13 +329,10 @@ ProxyDiContainer accepts optional settings to control its behavior:
 ```typescript
 const container = new ProxyDiContainer({
     allowRewriteDependencies: false, // Prevent accidental overwrites
-    resolveInContainerContext: false, // Performance optimization (see below)
 });
 ```
 
 **allowRewriteDependencies**: When `false` (default), trying to register the same dependency twice throws an error. Set to `true` if you need to replace dependencies at runtime (useful for testing or hot-reload scenarios).
-
-**resolveInContainerContext**: When `true`, parent dependencies resolved from child containers will see child-specific dependencies. This creates an additional Proxy layer with ~100x slower property access. Keep this `false` unless you specifically need this behavior.
 
 ### Resolving All Dependencies
 

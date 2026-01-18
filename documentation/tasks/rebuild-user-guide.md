@@ -76,7 +76,7 @@ Hierarchical containers allow parent-child relationships where:
 
 This replaces factory patterns and complex provider setups in other DI frameworks.
 
-**Important:** resolveInContainerContext (parent dependencies seeing child context) causes significant performance issues. It's an advanced feature for specific cases, NOT the main selling point.
+**Important:** `contextResolve()` (parent dependencies seeing child context) causes significant performance issues. It's an advanced feature for specific cases, NOT the main selling point.
 
 ### Theater Metaphor
 
