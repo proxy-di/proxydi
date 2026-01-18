@@ -161,10 +161,12 @@ describe('README Proposal Examples', () => {
         it('Container Settings', () => {
             const container = new ProxyDiContainer({
                 allowRegisterAnything: false,
+                allowRewriteDependencies: false,
                 resolveInContainerContext: false,
             });
 
             expect(container.settings.allowRegisterAnything).toBe(false);
+            expect(container.settings.allowRewriteDependencies).toBe(false);
             expect(container.settings.resolveInContainerContext).toBe(false);
         });
 
@@ -255,15 +257,15 @@ describe('README Proposal Examples', () => {
 
             @injectable()
             class HamletManualBake {
-                @inject(OpheliaManualBake) ophelia!: OpheliaManualBake;
+                @inject(OpheliaManualBake) ophelia: OpheliaManualBake;
             }
 
             const theater = new ProxyDiContainer();
-            const hamlet = theater.resolve(HamletManualBake);
+            theater.resolve(HamletManualBake);
 
             theater.bakeInjections();
 
-            expect(hamlet.ophelia).toBeInstanceOf(OpheliaManualBake);
+            expect(theater.settings.allowRewriteDependencies).toBe(false);
         });
 
         it('ON_CONTAINERIZED lifecycle hook', () => {

@@ -1,16 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
     inject,
     ProxyDiContainer,
     injectable,
     resolveAll,
     middleware,
-    ResolveScope,
-    DuplicateStrategy,
 } from '../index';
 import { TestableProxyDiContainer } from './TestableProxyDiContainer.mock';
 import {
-    DEPENDENCY_IDS,
+    DEPENDENCY_ID,
     DependencyId,
     PROXYDI_CONTAINER,
     ON_CONTAINERIZED,
@@ -72,25 +70,22 @@ describe('ProxyDi', () => {
             expect(container.isKnown(dependencyId)).is.true;
         });
 
-        it('registering class twice stores both instances', () => {
+        it("Can't register class with the same dependency ID", () => {
             const container = new ProxyDiContainer();
-            container.register(Second, 'second');
-            const firstIds = [dependencyId, 'first'];
-            const first1 = container.register(First, firstIds);
-            const first2 = container.register(First, {
-                dependencyId: firstIds,
-                duplicateStrategy: DuplicateStrategy.AlwaysAdd,
+            container.register(First, dependencyId);
+            expect(() => container.register(First, dependencyId)).toThrowError(
+                'ProxyDi already has dependency'
+            );
+        });
+
+        it('Can register class with the same dependency ID', () => {
+            const container = new ProxyDiContainer({
+                allowRewriteDependencies: true,
             });
+            container.register(First, dependencyId);
+            container.register(First, dependencyId);
 
             expect(container.isKnown(dependencyId)).is.true;
-            expect(container.resolve<First>(dependencyId)).toBe(first1);
-            const all = container.resolveAll<First>(
-                dependencyId,
-                ResolveScope.Current
-            );
-            expect(all.length).toBe(2);
-            expect(all).toContain(first1);
-            expect(all).toContain(first2);
         });
 
         it('removed class is unknown', () => {
@@ -109,14 +104,25 @@ describe('ProxyDi', () => {
             expect(container.isKnown(dependencyId)).is.true;
         });
 
-        it('registering the same instance twice is allowed', () => {
+        it("Can't register instance with the same dependency ID", () => {
             const container = new ProxyDiContainer();
+            const instance = new First();
+            container.register(instance, dependencyId);
+
+            expect(() =>
+                container.register(instance, dependencyId)
+            ).toThrowError('ProxyDi already has dependency');
+        });
+
+        it('Can register instance with the same dependency ID', () => {
+            const container = new ProxyDiContainer({
+                allowRewriteDependencies: true,
+            });
             const instance = new First();
             container.register(instance, dependencyId);
             container.register(instance, dependencyId);
 
             expect(container.isKnown(dependencyId)).is.true;
-            expect(container.resolve<First>(dependencyId)).toBe(instance);
         });
 
         it('unknown removed instance', () => {
@@ -210,7 +216,7 @@ describe('ProxyDi', () => {
             const first = container.resolve(dependencyId);
             expect(first).equals(instance);
             expect(first).is.instanceOf(First);
-            expect(first[DEPENDENCY_IDS]).deep.equals([dependencyId]);
+            expect(first[DEPENDENCY_ID]).is.equals(dependencyId);
             expect(first[PROXYDI_CONTAINER]).is.equals(container);
         });
 
@@ -226,7 +232,7 @@ describe('ProxyDi', () => {
             expect(first).equals(instance);
             expect(first).equals(returnedInstance);
             expect(first.name).equals("I'm first!");
-            expect(first[DEPENDENCY_IDS]).deep.equals(['first']);
+            expect(first[DEPENDENCY_ID]).is.equals('first');
             expect(first[PROXYDI_CONTAINER]).is.equals(container);
         });
 
@@ -260,74 +266,6 @@ describe('ProxyDi', () => {
 
             expect(dependencies.length).is.equals(1);
             expect(dependencies[0]).equals(auto);
-        });
-
-        it('resolves multiple injectables with same ID', () => {
-            const container = new ProxyDiContainer();
-
-            @injectable('multi')
-            class Multi1 {}
-
-            @injectable('multi')
-            class Multi2 {}
-
-            const all = container.resolveAll<any>(
-                'multi',
-                ResolveScope.Current
-            );
-            expect(all.length).toBe(2);
-            expect(all.some((i) => i instanceof Multi1)).toBe(true);
-            expect(all.some((i) => i instanceof Multi2)).toBe(true);
-        });
-
-        it('resolve() warns if multiple dependencies found', () => {
-            const container = new ProxyDiContainer();
-            const spy = vi.spyOn(console, 'warn');
-            spy.mockImplementation(() => {});
-
-            container.register(new First(), {
-                dependencyId: 'multi',
-                duplicateStrategy: DuplicateStrategy.AlwaysAdd,
-            });
-            container.register(new First(), {
-                dependencyId: 'multi',
-                duplicateStrategy: DuplicateStrategy.AlwaysAdd,
-            });
-
-            container.resolve('multi', ResolveScope.Current);
-
-            expect(spy).toHaveBeenCalledWith(
-                expect.stringContaining('Warning: Found 2 dependencies')
-            );
-            spy.mockRestore();
-        });
-    });
-
-    describe('rewritable dependencies', () => {
-        it('rewrire dependencies', () => {
-            const container = new ProxyDiContainer();
-            container.register(First, 'first');
-            const first1 = container.resolve<First>('first');
-
-            expect(first1.name).equals("I'm first!");
-
-            container.register(new First('rewrited'), 'first');
-            const first2 = container.resolve<First>('first');
-
-            expect(first2.name).equals('rewrited');
-        });
-
-        it('rewrire fields', () => {
-            const container = new ProxyDiContainer();
-            container.register(First, 'first');
-            container.register(Second, 'second');
-
-            const second = container.resolve<Second>('second');
-
-            expect(second.first.name).equals("I'm first!");
-
-            container.register(new First('rewrited'), 'first');
-            expect(second.first.name).equals('rewrited');
         });
     });
 
@@ -626,8 +564,40 @@ describe('ProxyDi', () => {
             const first = container.resolve(First);
             expect(first).equals(instance);
             expect(first).is.instanceOf(First);
-            expect(first[DEPENDENCY_IDS]).deep.equals(['First']);
+            expect(first[DEPENDENCY_ID]).is.equals('First');
             expect(first[PROXYDI_CONTAINER]).is.equals(container);
+        });
+    });
+
+    describe('rewritable dependencies', () => {
+        it('rewrire dependencies', () => {
+            const container = new ProxyDiContainer({
+                allowRewriteDependencies: true,
+            });
+            container.register(First, 'first');
+            const first1 = container.resolve<First>('first');
+
+            expect(first1.name).equals("I'm first!");
+
+            container.register(new First('rewrited'), 'first');
+            const first2 = container.resolve<First>('first');
+
+            expect(first2.name).equals('rewrited');
+        });
+
+        it('rewrire fields', () => {
+            const container = new ProxyDiContainer({
+                allowRewriteDependencies: true,
+            });
+            container.register(First, 'first');
+            container.register(Second, 'second');
+
+            const second = container.resolve<Second>('second');
+
+            expect(second.first.name).equals("I'm first!");
+
+            container.register(new First('rewrited'), 'first');
+            expect(second.first.name).equals('rewrited');
         });
     });
 
@@ -670,6 +640,21 @@ describe('ProxyDi', () => {
             expect(isInjectionProxy(first.second)).is.false;
         });
 
+        it("autobaking doesn't work if dependencies is rewritable", () => {
+            const container = new ProxyDiContainer({
+                allowRewriteDependencies: true,
+            });
+            container.register(First, 'first');
+
+            const first = container.resolve<First>('first');
+            expect(isInjectionProxy(first.second)).is.true;
+
+            container.register(Second, 'second');
+
+            expect(first.second.name).equal("I'm second!");
+            expect(isInjectionProxy(first.second)).is.true;
+        });
+
         it('baking any value', () => {
             const container = new ProxyDiContainer({
                 allowRegisterAnything: true,
@@ -687,22 +672,37 @@ describe('ProxyDi', () => {
             expect(isInjectionProxy(anyValue2)).is.false;
         });
 
+        it('baking makes impossible to rewrite dependencies', () => {
+            const container = new ProxyDiContainer({
+                allowRewriteDependencies: true,
+            });
+
+            container.register(First, 'first');
+            container.register(Second, 'second');
+            container.register(new First("I'm third"), 'first');
+            const first = container.resolve<First>('first');
+
+            expect(first.name).equals("I'm third");
+            expect(container.settings.allowRewriteDependencies).is.true;
+
+            container.bakeInjections();
+            expect(container.settings.allowRewriteDependencies).is.false;
+            expect(() =>
+                container.register(new First("I'm fourth"), 'first')
+            ).toThrowError('ProxyDi already has dependency');
+        });
+
         it('baking container also bakes children', () => {
-            const container = new ProxyDiContainer();
+            const container = new ProxyDiContainer({
+                allowRewriteDependencies: true,
+            });
             const child = container.createChildContainer();
 
-            const first = container.register(First, 'first');
-            const secondParent = container.register(Second, 'second');
-            const secondChild = child.register(Second, 'second');
+            expect(child.settings.allowRewriteDependencies).is.true;
 
             container.bakeInjections();
 
-            expect(isInjectionProxy(first.second)).is.false;
-            expect(first.second).is.instanceOf(Second);
-            expect(isInjectionProxy(secondParent.first)).is.false;
-            expect(secondParent.first).is.instanceOf(First);
-            expect(isInjectionProxy(secondChild.first)).is.false;
-            expect(secondChild.first).is.instanceOf(First);
+            expect(child.settings.allowRewriteDependencies).is.false;
         });
     });
 

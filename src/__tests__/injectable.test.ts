@@ -24,14 +24,11 @@ describe('@injectable()', () => {
         expect(dependency2.first.name).is.equals("I'm first!");
     });
 
-    it('should not throw error for dependency ID duplicate ', () => {
-        @injectable('second')
-        class SecondAgain {}
-
-        const container = new ProxyDiContainer();
-        const resolved = container.resolve<Second>('second');
-
-        expect(resolved).instanceOf(Second);
+    it('should throw error for dependency ID duplicate ', () => {
+        expect(() => {
+            @injectable('second')
+            class SecondAgain {}
+        }).toThrowError(`ProxyDi has already regisered dependency`);
     });
 
     it('should decorate class', () => {

@@ -413,9 +413,9 @@ class Review {
 
 **When to use @injectable():**
 
+- Most cases - it's simpler and more maintainable
 - One instance per class is sufficient
 - You want automatic dependency resolution
-- You want a class to be resolvable by multiple IDs (e.g. `@injectable(['Handler', 'Plugin'])`)
 
 You can also use `register()` without `@injectable()`:
 
@@ -432,54 +432,6 @@ production.register(Stage, 'stage');
 production.register(new Stage(), 'stage');
 
 const stage = production.resolve('stage');
-```
-
-### Multiple Registrations in Single Container
-
-By default, ProxyDi assumes "one ID = one instance". If you register a dependency with an ID that already exists, it **replaces** the old one. This is standard behavior for most uses.
-
-But sometimes you satisfy the "plugins" or "event handlers" pattern where you want multiple instances for one ID in the **same** container.
-
-```typescript
-import { DuplicateStrategy } from 'proxydi';
-
-const container = new ProxyDiContainer();
-
-// Register multiple listeners
-container.register(new MouseListener(), {
-    dependencyId: 'listener',
-    duplicateStrategy: DuplicateStrategy.AlwaysAdd,
-});
-container.register(new KeyboardListener(), {
-    dependencyId: 'listener',
-    duplicateStrategy: DuplicateStrategy.AlwaysAdd,
-});
-
-const listeners = container.resolveAll('listener'); // Returns both
-```
-
-### Controlling Resolution Scope
-
-By default:
-
-- `@inject` looks in: Current Container -> Parent Container
-- `@injectAll` looks in: Current Container -> All Descendants (Children)
-
-You can change this behavior using `ResolveScope`:
-
-```typescript
-import { ResolveScope } from 'proxydi';
-
-@injectable()
-class SecuritySystem {
-    // Only look for sensors in child containers (zones), ignore parent
-    @injectAll(Sensor, ResolveScope.Children)
-    zoneSensors: Sensor[];
-
-    // Look for config ONLY in current container
-    @inject(Config, ResolveScope.Current)
-    localConfig: Config;
-}
 ```
 
 ### Advanced Features
