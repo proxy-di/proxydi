@@ -321,5 +321,42 @@ describe('ResolveScope', () => {
             const auto = parent.resolve<ScopeTestAuto>('scopeTestAuto', ResolveScope.All);
             expect(auto.name).toBe('ScopeTestAuto');
         });
+
+        it('resolve with Children scope should NOT auto-create @injectable in current container', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+            // @injectable exists globally, but we're searching ONLY in children
+            // Should throw because no child has this dependency
+
+            expect(() => {
+                parent.resolve('scopeTestAuto', ResolveScope.Children);
+            }).toThrowError("Can't resolve");
+        });
+
+        it('isKnown with Children scope should return false for @injectable not in children', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+            // @injectable exists globally, but we're checking ONLY in children
+
+            expect(parent.isKnown('scopeTestAuto', ResolveScope.Children)).toBe(false);
+        });
+
+        it('resolve with Parent scope only - throws for @injectable not in parent', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+            // @injectable exists but we only search in Parent (not Current)
+
+            expect(() => {
+                child.resolve('scopeTestAuto', ResolveScope.Parent);
+            }).toThrowError("Can't resolve");
+        });
+
+        it('isKnown with Parent scope should return false for @injectable not in parent', () => {
+            const parent = new ProxyDiContainer();
+            const child = parent.createChildContainer();
+            // @injectable exists globally, but we're checking ONLY in parent
+
+            expect(child.isKnown('scopeTestAuto', ResolveScope.Parent)).toBe(false);
+        });
     });
 });

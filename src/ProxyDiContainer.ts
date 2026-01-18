@@ -199,29 +199,40 @@ export class ProxyDiContainer implements IProxyDiContainer {
     ): boolean {
         const id = this.normalizeDependencyId(dependencyId);
 
-        // @injectable classes are always available
-        if (injectableClasses[id]) {
-            return true;
-        }
-
-        // Current - check in this container
+        // Current - check in this container and @injectable
         if (scope & ResolveScope.Current) {
             if (this.inContextProxies[id] || this.dependencies[id]) {
+                return true;
+            }
+            // @injectable auto-registers in current container, so only available with Current scope
+            if (injectableClasses[id]) {
                 return true;
             }
         }
 
         // Parent - recursively check up the hierarchy
         if (scope & ResolveScope.Parent) {
-            if (this.parent && this.parent.isKnown(id, ResolveScope.Current | ResolveScope.Parent)) {
-                return true;
+            if (this.parent) {
+                // Check if parent has it directly
+                if (this.parent.hasOwn(id)) {
+                    return true;
+                }
+                // Recursively check parent's parent (without Current to avoid @injectable)
+                if (this.parent.isKnown(id, ResolveScope.Parent)) {
+                    return true;
+                }
             }
         }
 
         // Children - recursively check down the hierarchy
         if (scope & ResolveScope.Children) {
             for (const child of this.children) {
-                if (child.isKnown(id, ResolveScope.Current | ResolveScope.Children)) {
+                // Check if child has it directly
+                if (child.hasOwn(id)) {
+                    return true;
+                }
+                // Recursively check child's children (without Current to avoid @injectable auto-creation)
+                if (child.isKnown(id, ResolveScope.Children)) {
                     return true;
                 }
             }
@@ -333,7 +344,8 @@ export class ProxyDiContainer implements IProxyDiContainer {
             }
         }
 
-        // @injectable - create instance (always reached if isKnown returned true)
+        // @injectable - create instance in current container (only if Current scope)
+        // This is always reached when isKnown returned true with Current scope
         const InjectableClass = injectableClasses[dependencyId];
         return this.register(InjectableClass, dependencyId);
     };
