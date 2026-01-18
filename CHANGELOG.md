@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [[0.4.0](https://www.npmjs.com/package/proxydi/v/0.4.0)] - 2026-01-01
+
 ### Added
 
 - `isKnown()` and `resolve()` now accept optional `ResolveScope` parameter to control search direction (Current, Parent, Children). Defaults to `Current | Parent`
@@ -11,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ProxyDiContainer.resolveAll()` method for resolving multiple dependencies directly from container instance
 
 - Added test coverage for Symbol-based dependency IDs with `@injectable`, `@inject`, and `@injectAll` decorators
+
+### Removed
+
+- `allowRegisterAnything` option is removed;
 
 ## [[0.2.0](https://www.npmjs.com/package/proxydi/v/0.2.0)] - 2026-01-01
 
