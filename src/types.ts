@@ -59,6 +59,11 @@ export type IProxyDiContainer = {
         scope?: ResolveScope
     ) => T & ContainerizedDependency;
 
+    contextResolve: <T>(
+        dependencyId: DependencyId | DependencyClass<any>,
+        scope?: ResolveScope
+    ) => T & ContainerizedDependency;
+
     resolveAll<T>(
         dependencyId: DependencyId | DependencyClass<any>,
         scope?: ResolveScope
@@ -118,7 +123,6 @@ export type ContainerizedDependency = Dependency & {
 
 export type ContainerSettings = {
     allowRewriteDependencies?: boolean;
-    resolveInContainerContext?: boolean; // TODO: Change to contextResolve()
 };
 
 export const IS_INJECTION_PROXY = Symbol('isInjectionProxy');

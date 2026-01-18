@@ -53,10 +53,14 @@ export class ProxyDiContainer implements IProxyDiContainer {
     private dependencies: Record<DependencyId, ContainerizedDependency> = {};
 
     /**
-     * Holds proxies for dependencies registered in parent containers to provide for it dependencies from this container
+     * Holds proxies for dependencies that were auto-baked (from @inject)
      */
-    private inContextProxies: Record<DependencyId, ContainerizedDependency> =
-        {};
+    private bakedProxies: Record<DependencyId, ContainerizedDependency> = {};
+
+    /**
+     * Holds proxies for dependencies resolved via contextResolve() - separate from bakedProxies
+     */
+    private contextProxies: Record<DependencyId, ContainerizedDependency> = {};
 
     /**
      * Settings that control the behavior of the container and it's children
@@ -201,7 +205,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
 
         // Current - check in this container and @injectable
         if (scope & ResolveScope.Current) {
-            if (this.inContextProxies[id] || this.dependencies[id]) {
+            if (this.bakedProxies[id] || this.dependencies[id]) {
                 return true;
             }
             // @injectable auto-registers in current container, so only available with Current scope
@@ -248,7 +252,7 @@ export class ProxyDiContainer implements IProxyDiContainer {
      */
     hasOwn(dependencyId: DependencyId | DependencyClass<any>): boolean {
         const id = this.normalizeDependencyId(dependencyId);
-        return !!(this.inContextProxies[id] || this.dependencies[id]);
+        return !!(this.bakedProxies[id] || this.dependencies[id]);
     }
 
     /**
@@ -295,17 +299,55 @@ export class ProxyDiContainer implements IProxyDiContainer {
         return context.dependency;
     }
 
+    /**
+     * Resolves a dependency and wraps it in a proxy that resolves injections in THIS container's context.
+     * Use this when you need a dependency from a parent container but want its @inject fields
+     * to resolve from this container instead of where the dependency was originally registered.
+     * @param dependencyId The dependency ID or class constructor.
+     * @param scope Bitwise enum to control where to search. Defaults to Current | Parent.
+     * @returns The resolved dependency wrapped in a context proxy.
+     */
+    contextResolve<T>(dependencyId: DependencyId, scope?: ResolveScope): T & ContainerizedDependency;
+    contextResolve<T extends DependencyClass<any>>(
+        SomeClass: T,
+        scope?: ResolveScope
+    ): InstanceType<T> & ContainerizedDependency;
+    contextResolve<T>(
+        dependency: DependencyId | DependencyClass<any>,
+        scope: ResolveScope = ResolveScope.Current | ResolveScope.Parent
+    ): T & ContainerizedDependency {
+        const instance = this.resolve<T>(dependency, scope);
+
+        // If already in this container, no proxy needed
+        if (instance[PROXYDI_CONTAINER] === this) {
+            return instance;
+        }
+
+        // Primitives cannot be proxied - return directly
+        if (typeof instance !== 'object' && typeof instance !== 'function') {
+            return instance;
+        }
+
+        // Check if we already have a context proxy for this dependency
+        const id = this.normalizeDependencyId(dependency);
+        if (this.contextProxies[id]) {
+            return this.contextProxies[id] as T & ContainerizedDependency;
+        }
+
+        // Create proxy that resolves injections in this container's context
+        const proxy = makeDependencyProxy(instance);
+        this.injectDependenciesTo(proxy);
+        this.contextProxies[id] = proxy;
+
+        return proxy as T & ContainerizedDependency;
+    }
+
     private resolveImpl = <T>(
         dependencyId: DependencyId,
         scope: ResolveScope = ResolveScope.Current | ResolveScope.Parent
     ): T & ContainerizedDependency => {
-        // Current - check inContextProxies and dependencies
+        // Current - check dependencies
         if (scope & ResolveScope.Current) {
-            const proxy = this.inContextProxies[dependencyId];
-            if (proxy) {
-                return proxy as T & ContainerizedDependency;
-            }
-
             const instance = this.dependencies[dependencyId];
             if (instance) {
                 return instance as T & ContainerizedDependency;
@@ -317,16 +359,6 @@ export class ProxyDiContainer implements IProxyDiContainer {
             if (this.parent) {
                 const parentInstance = this.parent.findDependency<T>(dependencyId);
                 if (parentInstance) {
-                    if (
-                        parentInstance[PROXYDI_CONTAINER] !== this &&
-                        typeof parentInstance === 'object' &&
-                        this.settings.resolveInContainerContext
-                    ) {
-                        const proxy = makeDependencyProxy(parentInstance);
-                        this.injectDependenciesTo(proxy);
-                        this.inContextProxies[dependencyId] = proxy;
-                        return proxy as T & ContainerizedDependency;
-                    }
                     return parentInstance;
                 }
             }

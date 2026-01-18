@@ -40,8 +40,8 @@ Direct and technical. Focus on architectural decisions and trade-offs.
 
 **Focus on "why", not "what".** Code shows what, docs explain why:
 ```markdown
-✅ Good: "resolveInContainerContext disabled by default — creates permanent Proxy (~100x slower)"
-❌ Bad: "resolveInContainerContext is a setting in the container"
+✅ Good: "contextResolve() creates permanent Proxy (~100x slower) — use sparingly"
+❌ Bad: "contextResolve() is a method in the container"
 ```
 
 **Reference code directly:**

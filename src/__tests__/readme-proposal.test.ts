@@ -161,11 +161,9 @@ describe('README Proposal Examples', () => {
         it('Container Settings', () => {
             const container = new ProxyDiContainer({
                 allowRewriteDependencies: false,
-                resolveInContainerContext: false,
             });
 
             expect(container.settings.allowRewriteDependencies).toBe(false);
-            expect(container.settings.resolveInContainerContext).toBe(false);
         });
 
         it('Custom Dependency IDs - Multiple instances', () => {
@@ -357,7 +355,7 @@ describe('README Proposal Examples', () => {
             expect(director.checkStage()).toBe('Rehearsal stage');
         });
 
-        it('Container Context Resolution - with resolveInContainerContext', () => {
+        it('Container Context Resolution - with contextResolve()', () => {
             @injectable()
             class ProductionInfo {
                 name = 'Hamlet';
@@ -373,15 +371,13 @@ describe('README Proposal Examples', () => {
                 }
             }
 
-            const theater = new ProxyDiContainer({
-                resolveInContainerContext: true,
-            });
+            const theater = new ProxyDiContainer();
             theater.register(DirectorContextResolution);
 
             const hamletProduction = theater.createChildContainer();
             hamletProduction.register(ProductionInfo);
 
-            const director = hamletProduction.resolve(
+            const director = hamletProduction.contextResolve(
                 DirectorContextResolution
             );
             expect(director.announce()).toBe(

@@ -69,9 +69,9 @@ graph TB
     Hierarchy --> CheckOrigin{"Instance from
     different container?"}
     CheckOrigin -->|No - same container| DirectInstance
-    CheckOrigin -->|Yes - parent container| ResolveContext{resolveInContainerContext?}
-    ResolveContext -->|false| DirectInstance
-    ResolveContext -->|true| DependencyProxy["makeDependencyProxy.ts
+    CheckOrigin -->|Yes - parent container| ResolveContext{"Which method?"}
+    ResolveContext -->|resolve| DirectInstance
+    ResolveContext -->|contextResolve| DependencyProxy["makeDependencyProxy.ts
     Permanent Proxy"]
 
     Container --> Middleware[Middleware system]
@@ -102,9 +102,9 @@ graph TB
 
 **Proxy Implementation:**
 
-- `makeInjectionProxy.ts` — Proxy for `@inject` fields (auto-bakes after first use)
-- `makeDependencyProxy.ts` — Proxy for `resolveInContainerContext` (permanent)
-- `makeInjectAllProxy.ts` — Proxy for `@injectAll` arrays (permanent, dynamic)
+- `makeInjectionProxy.ts` — Temporary proxy for `@inject` fields (auto-bakes after first use)
+- `makeDependencyProxy.ts` — Permanent proxy for `contextResolve()` 
+- `makeInjectAllProxy.ts` — Permanent proxy for `@injectAll` arrays (permanent, dynamic)
 
 **Middleware:**
 
@@ -135,9 +135,9 @@ Enables circular dependency resolution without manual intervention. Different Pr
 - Field injections (`@inject`) — auto-bake after first use (see `makeInjectionProxy.ts:30-32`)
 - Context resolution — permanent Proxy (see `makeDependencyProxy.ts`)
 
-### Why `resolveInContainerContext` is disabled by default?
+### `contextResolve()`?
 
-Creates additional permanent Proxy for each parent dependency resolved from child. ~100x slower property access. See `ProxyDiContainer.ts:268-278`.
+Creates additional permanent Proxy for each parent dependency resolved from child. ~100x slower property access. 
 
 ### Why `register(instance, Class)` is forbidden?
 
@@ -149,7 +149,7 @@ TypeScript overloads distinguish class constructors from instances. Conditional 
 | ----------------------------- | --------------- | ---------------------- | ------------------ |
 | `@inject` fields (default)    | InjectionProxy  | Auto-bake on first use | Minimal (one-time) |
 | `@inject` fields (rewritable) | InjectionProxy  | Never                  | ~100x slower       |
-| `resolveInContainerContext`   | DependencyProxy | Never                  | ~100x slower       |
+| `contextResolve()`            | DependencyProxy | Never                  | ~100x slower       |
 
 See performance tests in `ProxyDiContainer.test.ts:962-994` (commented out).
 

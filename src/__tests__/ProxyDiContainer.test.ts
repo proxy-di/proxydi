@@ -490,10 +490,8 @@ describe('ProxyDi', () => {
             );
         });
 
-        it('could resolve dependencies in container context', () => {
-            const parent = new ProxyDiContainer({
-                resolveInContainerContext: true,
-            });
+        it('could resolve dependencies in container context with contextResolve()', () => {
+            const parent = new ProxyDiContainer();
             parent.register(First, 'first');
             const dependency1Parent = parent.resolve<First>('first');
             expect(() => dependency1Parent.second.name).toThrowError(
@@ -502,7 +500,7 @@ describe('ProxyDi', () => {
 
             const child = parent.createChildContainer();
             child.register(Second, 'second');
-            const dependency1Child = child.resolve<First>('first');
+            const dependency1Child = child.contextResolve<First>('first');
 
             const dependency2 = child.resolve<Second>('second');
 
@@ -510,10 +508,8 @@ describe('ProxyDi', () => {
             expect(dependency1Child.second.name).equals("I'm second!");
         });
 
-        it("resolve() takes dependencies from it's container", () => {
-            const parent = new ProxyDiContainer({
-                resolveInContainerContext: true,
-            });
+        it("contextResolve() takes dependencies from it's container", () => {
+            const parent = new ProxyDiContainer();
             parent.register(Second, 'second');
 
             const child1 = parent.createChildContainer();
@@ -522,11 +518,97 @@ describe('ProxyDi', () => {
             const child2 = parent.createChildContainer();
             child2.register(new First('from child #2'), 'first');
 
-            const secondFromChild1 = child1.resolve<Second>('second');
-            const secondFromChild2 = child2.resolve<Second>('second');
+            const secondFromChild1 = child1.contextResolve<Second>('second');
+            const secondFromChild2 = child2.contextResolve<Second>('second');
 
             expect(secondFromChild1.first.name).equals('from child #1');
             expect(secondFromChild2.first.name).equals('from child #2');
+        });
+
+        it('contextResolve() returns same instance when already in current container', () => {
+            const container = new ProxyDiContainer();
+            const first = container.register(First, 'first');
+
+            const resolved = container.contextResolve<First>('first');
+
+            expect(resolved).equals(first);
+        });
+
+        it('contextResolve() returns cached proxy on second call', () => {
+            const parent = new ProxyDiContainer();
+            parent.register(First, 'first');
+
+            const child = parent.createChildContainer();
+
+            const firstCall = child.contextResolve<First>('first');
+            const secondCall = child.contextResolve<First>('first');
+
+            expect(firstCall).equals(secondCall);
+        });
+
+        it('contextResolve() returns primitive directly without proxy', () => {
+            const parent = new ProxyDiContainer();
+            parent.register('hello', 'greeting');
+            parent.register(42, 'answer');
+            parent.register(true, 'flag');
+
+            const child = parent.createChildContainer();
+
+            // Should not throw - primitives returned directly
+            expect(child.contextResolve('greeting')).equals('hello');
+            expect(child.contextResolve('answer')).equals(42);
+            expect(child.contextResolve('flag')).equals(true);
+        });
+
+        it('contextResolve() updates instance injections to current container context', () => {
+            // This is intended behavior: contextResolve places the instance
+            // in current container's context, updating its @inject fields
+
+            class Logger {
+                constructor(public name: string) {}
+            }
+
+            class Service {
+                @inject('logger') logger: Logger;
+            }
+
+            const parent = new ProxyDiContainer();
+            parent.register(new Logger('parent-logger'), 'logger');
+            parent.register(Service, 'service');
+
+            const serviceInParent = parent.resolve<Service>('service');
+            expect(serviceInParent.logger.name).equals('parent-logger');
+
+            // Child has different logger
+            const child = parent.createChildContainer();
+            child.register(new Logger('child-logger'), 'logger');
+
+            // contextResolve updates instance to child context
+            const serviceInChild = child.contextResolve<Service>('service');
+            expect(serviceInChild.logger.name).equals('child-logger');
+
+            // Instance now reflects current (child) context - this is intended
+            expect(serviceInParent.logger.name).equals('child-logger');
+        });
+
+        it('contextResolve() does NOT affect resolve() - they are independent', () => {
+            const parent = new ProxyDiContainer();
+            const original = parent.register(First, 'first');
+
+            const child = parent.createChildContainer();
+
+            // First resolve() returns parent instance
+            const beforeContext = child.resolve<First>('first');
+            expect(beforeContext).equals(original);
+
+            // contextResolve() creates a proxy
+            const contextProxy = child.contextResolve<First>('first');
+            expect(contextProxy).not.equals(original);
+
+            // resolve() STILL returns parent instance, NOT the proxy
+            const afterContext = child.resolve<First>('first');
+            expect(afterContext).equals(original);
+            expect(afterContext).not.equals(contextProxy);
         });
     });
 

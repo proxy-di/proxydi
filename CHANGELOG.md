@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `@inject()` now accepts optional `ResolveScope` parameter: `@inject(dependencyId, scope?)`. Defaults to `Current | Parent`
 
+### Changed
+
+- `contextResolve()` method replaces `resolveInContainerContext` option
+
+### Known Issues
+
+- `contextResolve()` updates the instance's `@inject` fields to current container context. This means if you `contextResolve()` a parent dependency from a child, the parent instance will now have child-scoped injections. This is intended behavior - the instance is placed into the current container's context
+
 ### Fixed
 
 - `@injectable` classes no longer bypass scope restrictions in `isKnown()` and `resolve()`. Previously, `resolve(id, ResolveScope.Children)` or `resolve(id, ResolveScope.Parent)` would auto-create an `@injectable` in the current container instead of throwing when not found
