@@ -12,7 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- `contextResolve()` method replaces `resolveInContainerContext` option. 
+- `contextResolve()` method replaces `resolveInContainerContext` option
+
+### Known Issues
+
+- `contextResolve()` updates the instance's `@inject` fields to current container context. This means if you `contextResolve()` a parent dependency from a child, the parent instance will now have child-scoped injections. This is intended behavior - the instance is placed into the current container's context
 
 ### Fixed
 

@@ -560,6 +560,37 @@ describe('ProxyDi', () => {
             expect(child.contextResolve('flag')).equals(true);
         });
 
+        it('contextResolve() updates instance injections to current container context', () => {
+            // This is intended behavior: contextResolve places the instance
+            // in current container's context, updating its @inject fields
+
+            class Logger {
+                constructor(public name: string) {}
+            }
+
+            class Service {
+                @inject('logger') logger: Logger;
+            }
+
+            const parent = new ProxyDiContainer();
+            parent.register(new Logger('parent-logger'), 'logger');
+            parent.register(Service, 'service');
+
+            const serviceInParent = parent.resolve<Service>('service');
+            expect(serviceInParent.logger.name).equals('parent-logger');
+
+            // Child has different logger
+            const child = parent.createChildContainer();
+            child.register(new Logger('child-logger'), 'logger');
+
+            // contextResolve updates instance to child context
+            const serviceInChild = child.contextResolve<Service>('service');
+            expect(serviceInChild.logger.name).equals('child-logger');
+
+            // Instance now reflects current (child) context - this is intended
+            expect(serviceInParent.logger.name).equals('child-logger');
+        });
+
         it('contextResolve() does NOT affect resolve() - they are independent', () => {
             const parent = new ProxyDiContainer();
             const original = parent.register(First, 'first');
