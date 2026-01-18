@@ -323,6 +323,11 @@ export class ProxyDiContainer implements IProxyDiContainer {
             return instance;
         }
 
+        // Primitives cannot be proxied - return directly
+        if (typeof instance !== 'object' && typeof instance !== 'function') {
+            return instance;
+        }
+
         // Check if we already have a context proxy for this dependency
         const id = this.normalizeDependencyId(dependency);
         if (this.contextProxies[id]) {

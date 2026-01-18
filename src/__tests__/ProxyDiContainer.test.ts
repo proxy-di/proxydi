@@ -546,6 +546,20 @@ describe('ProxyDi', () => {
             expect(firstCall).equals(secondCall);
         });
 
+        it('contextResolve() returns primitive directly without proxy', () => {
+            const parent = new ProxyDiContainer();
+            parent.register('hello', 'greeting');
+            parent.register(42, 'answer');
+            parent.register(true, 'flag');
+
+            const child = parent.createChildContainer();
+
+            // Should not throw - primitives returned directly
+            expect(child.contextResolve('greeting')).equals('hello');
+            expect(child.contextResolve('answer')).equals(42);
+            expect(child.contextResolve('flag')).equals(true);
+        });
+
         it('contextResolve() does NOT affect resolve() - they are independent', () => {
             const parent = new ProxyDiContainer();
             const original = parent.register(First, 'first');
