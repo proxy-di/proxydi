@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.4.1] - unreleased
 
+### Added
+
+- `@inject()` now accepts optional `ResolveScope` parameter: `@inject(dependencyId, scope?)`. Defaults to `Current | Parent`
+
 ### Fixed
 
 - `@injectable` classes no longer bypass scope restrictions in `isKnown()` and `resolve()`. Previously, `resolve(id, ResolveScope.Children)` or `resolve(id, ResolveScope.Parent)` would auto-create an `@injectable` in the current container instead of throwing when not found

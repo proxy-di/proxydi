@@ -18,11 +18,11 @@ export type SingleInjection = {
     property: string | symbol;
     dependencyId: DependencyId;
     set: Setter;
+    scope: ResolveScope;
 };
 
 export type AllInjection = SingleInjection & {
     isAll: true;
-    scope: ResolveScope;
 };
 
 export type Injection = SingleInjection | AllInjection;

@@ -25,8 +25,8 @@ export const makeInjectionProxy = <T>(
     container: IProxyDiContainer
 ): T => {
     function getDependency() {
-        if (container.isKnown(injection.dependencyId)) {
-            const dependency = container.resolve(injection.dependencyId) as any;
+        if (container.isKnown(injection.dependencyId, injection.scope)) {
+            const dependency = container.resolve(injection.dependencyId, injection.scope) as any;
             if (!container.settings.allowRewriteDependencies) {
                 injection.set(injectionOwner, dependency);
             }
